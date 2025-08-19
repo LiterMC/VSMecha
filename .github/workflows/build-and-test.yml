@@ -107,7 +107,7 @@ jobs:
         id: artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ format('VSAddonTemplate Artifacts PR {0}', github.event.number) }}
+          name: ${{ format('VSMecha Artifacts PR {0}', github.event.number) }}
           path: mod-output/*.jar
           overwrite: true
           if-no-files-found: error
