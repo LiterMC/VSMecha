@@ -1,0 +1,86 @@
+plugins {
+	id 'multiloader-loader'
+	// id 'fabric-loom'
+	id 'com.github.johnrengelman.shadow' version '7.1.2'
+	id 'com.modrinth.minotaur' version '2.+'
+}
+
+architectury {
+	fabric()
+}
+
+configurations {
+	common
+	shadowCommon
+	compileClasspath.extendsFrom common
+	runtimeClasspath.extendsFrom common
+	developmentFabric.extendsFrom common
+}
+
+dependencies {
+	api "org.jetbrains.kotlin:kotlin-reflect:1.9.10"
+	api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10"
+	modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+	include modApi("teamreborn:energy:3.0.0")
+	implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
+	implementation project(":common")
+	implementation "com.google.auto.service:auto-service:1.1.1"
+	annotationProcessor "com.google.auto.service:auto-service:1.1.1"
+
+	include implementation("com.electronwill.night-config:core:3.8.1")
+	include implementation("com.electronwill.night-config:toml:3.8.1")
+
+	modRuntimeOnly "com.terraformersmc:modmenu:3.2.3"
+	modRuntimeOnly "me.shedaniel.cloth:cloth-config:${cloth_config_version}"
+
+	modCompileOnly "org.valkyrienskies:valkyrienskies-120-fabric:${vs2_version}"
+
+	modCompileOnly "maven.modrinth:jade:${jade_version}+fabric"
+	modRuntimeOnly "maven.modrinth:jade:${jade_version}+fabric"
+
+	modCompileOnly "cc.tweaked:cc-tweaked-${minecraft_version}-fabric:${cct_version}"
+
+	modCompileOnly "com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}"
+	modRuntimeOnly "com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}"
+}
+
+loom {
+	accessWidenerPath = project(":common").loom.accessWidenerPath
+	mixin {
+		defaultRefmapName.set("${mod_id}.refmap.json")
+	}
+	runs {
+		client {
+			client()
+			setConfigName("Fabric Client")
+			ideConfigGenerated(true)
+			runDir("run")
+		}
+		server {
+			server()
+			setConfigName("Fabric Server")
+			ideConfigGenerated(true)
+			runDir("run")
+		}
+	}
+}
+
+components.java {
+	withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+		skip()
+	}
+}
+
+modrinth {
+	token = System.getenv("MODRINTH_TOKEN")
+	projectId = "${modrinth_project_id}"
+	versionNumber = "${minecraft_version}-fabric-${version}"
+	versionType = "release"
+	uploadFile = jar
+	gameVersions = ["1.20.1"]
+	loaders = ["fabric"]
+	dependencies {
+		required.project "valkyrien-skies"
+	}
+}

@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "${mod_id}",
+	"version": "${version}",
+	"name": "${mod_name}",
+	"description": "${description}",
+	"authors": [
+		"${mod_author}"
+	],
+	"contact": {
+		"homepage": "${github_repo}",
+		"sources": "${github_repo}",
+		"issues": "${github_repo}/issues"
+	},
+	"license": "${license}",
+	"icon": "${mod_id}.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"${group}.ModEntry"
+		],
+		"client": [
+			"${group}.client.ClientModEntry"
+		]
+	},
+	"mixins": [
+		"${mod_id}.mixins.json",
+		"${mod_id}.fabric.mixins.json"
+	],
+	"depends": {
+		"fabric": "*",
+		"fabricloader": ">=0.16",
+		"java": ">=17",
+		"minecraft": "${minecraft_version}",
+		"valkyrienskies": "*"
+	}
+}
+  

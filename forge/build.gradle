@@ -1,0 +1,104 @@
+plugins {
+	id 'multiloader-loader'
+	id 'com.github.johnrengelman.shadow' version '7.1.2'
+	id 'com.modrinth.minotaur' version '2.+'
+}
+
+architectury {
+	forge()
+}
+
+loom {
+	accessWidenerPath = project(":common").loom.accessWidenerPath
+
+	mixin {
+		defaultRefmapName.set("${mod_id}.refmap.json")
+	}
+
+	forge {
+		convertAccessWideners = true
+		mixinConfig "${mod_id}.mixins.json"
+		mixinConfig "${mod_id}.forge.mixins.json"
+		extraAccessWideners.add loom.accessWidenerPath.get().asFile.name
+	}
+}
+
+configurations {
+	common
+	shadowCommon
+	compileClasspath.extendsFrom common
+	runtimeClasspath.extendsFrom common
+	developmentForge.extendsFrom common
+}
+
+dependencies {
+	api "org.jetbrains.kotlin:kotlin-reflect:1.9.10"
+	api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10"
+	forge "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+	include modApi("dev.architectury:architectury-forge:${architectury_version}")
+
+	compileOnly project(":common")
+	annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT:processor")
+	implementation "com.google.auto.service:auto-service:1.1.1"
+	annotationProcessor "com.google.auto.service:auto-service:1.1.1"
+
+	implementation "thedarkcolour:kotlinforforge:4.10.0"
+
+	implementation "org.joml:joml:1.10.5"
+	implementation "org.joml:joml-primitives:1.10.0"
+
+	modApi("org.valkyrienskies:valkyrienskies-120-forge:${vs2_version}") { transitive = false }
+
+	implementation "org.valkyrienskies.core:api:${vs_core_version}"
+	implementation "org.valkyrienskies.core:api-game:${vs_core_version}"
+	implementation "org.valkyrienskies.core:util:${vs_core_version}"
+	implementation "org.valkyrienskies.core:impl:${vs_core_version}"
+
+	implementation "thedarkcolour:kotlinforforge:${kff_version}"
+
+	modCompileOnly "maven.modrinth:jade:${jade_version}+forge"
+	modRuntimeOnly "maven.modrinth:jade:${jade_version}+forge"
+
+	modCompileOnly "cc.tweaked:cc-tweaked-${minecraft_version}-forge:${cct_version}"
+
+	modCompileOnly "com.simibubi.create:create-${minecraft_version}:${create_version}:all"
+	modRuntimeOnly "com.simibubi.create:create-${minecraft_version}:${create_version}:all"
+}
+
+shadowJar {
+	exclude "fabric.mod.json"
+	exclude "architectury.common.json"
+
+	configurations = [project.configurations.shadowCommon]
+	archiveClassifier.set "dev-shadow"
+}
+
+remapJar {
+	input.set shadowJar.archiveFile
+	dependsOn shadowJar
+	archiveClassifier.set null
+}
+
+jar {
+	archiveClassifier.set "dev"
+}
+
+components.java {
+	withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+		skip()
+	}
+}
+
+modrinth {
+	token = System.getenv("MODRINTH_TOKEN")
+	projectId = "${modrinth_project_id}"
+	versionNumber = "${minecraft_version}-forge-${version}"
+	versionType = "release"
+	uploadFile = jar
+	gameVersions = ["1.20.1"]
+	loaders = ["forge", "neoforge"]
+	dependencies {
+		required.project "valkyrien-skies"
+	}
+}

@@ -1,0 +1,28 @@
+# Mac OS
+.DS_Store
+
+# eclipse
+bin
+*.launch
+.settings
+.metadata
+.classpath
+.project
+
+# idea
+out
+*.ipr
+*.iws
+*.iml
+.idea/*
+!.idea/scopes
+
+# gradle
+build
+/mod-output
+.gradle
+
+# other
+.architectury-transformer
+eclipse
+run

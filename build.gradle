@@ -1,0 +1,8 @@
+plugins {
+	id 'architectury-plugin' version '3.4.146'
+	id 'dev.architectury.loom' version '1.3.355' apply(false)
+}
+
+architectury {
+	minecraft = minecraft_version
+}

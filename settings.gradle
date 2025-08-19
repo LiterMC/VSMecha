@@ -1,0 +1,40 @@
+pluginManagement {
+	repositories {
+		gradlePluginPortal()
+		maven {
+			name = 'Forge'
+			url = 'https://maven.minecraftforge.net'
+			content {
+				includeGroup('net.minecraftforge')
+			}
+		}
+		maven {
+			name = 'Fabric'
+			url = 'https://maven.fabricmc.net'
+			content {
+				includeGroupAndSubgroups('net.fabricmc')
+			}
+		}
+		maven {
+			name = 'Sponge Snapshots'
+			url = 'https://repo.spongepowered.org/repository/maven-public'
+			content {
+				includeGroup('de.oceanlabs.mcp')
+				includeGroup('org.spongepowered')
+			}
+		}
+		maven {
+			name = 'Architectury'
+			url = 'https://maven.architectury.dev'
+		}
+	}
+}
+
+plugins {
+	id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
+
+rootProject.name = 'VSAddonTemplate'
+include("common")
+include("fabric")
+include("forge")

@@ -1,0 +1,120 @@
+name: Build And Test
+
+on:
+  workflow_dispatch:
+  push:
+    tags-ignore:
+      - '**' 
+    branches-ignore:
+      - gh-pages
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+concurrency:
+  group: build-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-pr:
+    name: Query Existing PR
+    runs-on: ubuntu-latest
+    outputs:
+      inpr: ${{ steps.query.outputs.inpr }}
+    steps:
+      - name: Query PR
+        id: query
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "${{ github.event_name != 'push' || github.ref_type != 'branch' }}" == true ]]; then
+            echo "inpr=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          LENGTH=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            '/repos/${{ github.repository }}/pulls?state=open&head=${{ github.repository_owner }}:${{ github.ref_name }}' \
+            --jq 'length')
+          if [[ "$LENGTH" == 0 ]]; then
+            echo "inpr=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Branch is contributing in a PR, skipping regular checks"
+            echo "inpr=true" >> "$GITHUB_OUTPUT"
+          fi
+  test:
+    name: Check & Test
+    runs-on: ubuntu-latest
+    needs:
+      - check-pr
+    if: ${{ needs.check-pr.outputs.inpr != 'true' }}
+    steps:
+      - name: Checkout
+        if: ${{ github.event_name != 'pull_request_target' }}
+        uses: actions/checkout@v4
+      - name: Checkout Pull Request
+        if: ${{ github.event_name == 'pull_request_target' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - name: Setup JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: microsoft
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Gradle Check
+        run: ./gradlew check --no-daemon
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs:
+      - test
+    steps:
+      - name: Checkout
+        if: ${{ github.event_name != 'pull_request_target' }}
+        uses: actions/checkout@v4
+      - name: Checkout Pull Request
+        if: ${{ github.event_name == 'pull_request_target' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - name: Setup JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: microsoft
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: LOG-METADATA-1
+        run: |
+          function output() {
+            echo "output:$1=$2"
+          }
+          output PR_NUMBER "${{ github.event.number }}"
+          output HEAD_SHA "${{ github.sha }}"
+      - name: Gradle Build
+        run: ./gradlew build --no-daemon "-Dmod_artifact_suffix=-pr${{ github.event.number }}-$(git rev-parse --short ${{ github.sha }})"
+      - name: Upload Build Artifacts
+        id: artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ format('VSAddonTemplate Artifacts PR {0}', github.event.number) }}
+          path: mod-output/*.jar
+          overwrite: true
+          if-no-files-found: error
+      - name: LOG-METADATA-2
+        run: |
+          function output() {
+            echo "output:$1=$2"
+          }
+          output ARTIFACT_ID "${{ steps.artifact.outputs.artifact-id }}"
+          output ARTIFACT_URL "${{ steps.artifact.outputs.artifact-url }}"
