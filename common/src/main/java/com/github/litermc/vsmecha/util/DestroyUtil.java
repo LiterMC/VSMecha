@@ -1,8 +1,5 @@
 package com.github.litermc.vsmecha.util;
 
-import com.github.litermc.vsmecha.platform.PlatformHelper;
-
-import com.mojang.authlib.GameProfile;
 import it.unimi.dsi.fastutil.longs.Long2FloatOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.BlockPos;
@@ -12,31 +9,13 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.saveddata.SavedData;
 
-import java.util.UUID;
-
 public final class DestroyUtil {
-	public static final UUID DEFAULT_PROFILE_UUID = UUID.fromString("0198c530-5df5-797a-a9e5-7b918801c96c");
-	public static final GameProfile DEFAULT_PROFILE = new GameProfile(DEFAULT_PROFILE_UUID, "[VSMecha]");
-
 	public static void postTick(final ServerLevel level) {
 		final DestroyData data = DestroyData.get(level);
 		data.tick++;
 		if (data.tick % 100 == 0) {
 			refreshDestroyProgresses(level);
 		}
-	}
-
-	public static boolean impact(final ServerLevel level, final BlockPos pos, final float speed) {
-		return impact(level, pos, DEFAULT_PROFILE, speed);
-	}
-
-	public static boolean impact(final ServerLevel level, final BlockPos pos, GameProfile profile, final float speed) {
-		if (profile == null) {
-			profile = DEFAULT_PROFILE;
-		}
-		final ServerPlayer player = PlatformHelper.get().createFakePlayer(level, profile);
-		((IFakePlayer) (player)).setDestroySpeed(speed);
-		return impact(level, pos, player);
 	}
 
 	public static boolean impact(final ServerLevel level, final BlockPos pos, final ServerPlayer player) {

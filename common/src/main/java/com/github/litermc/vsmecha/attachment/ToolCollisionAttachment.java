@@ -1,13 +1,18 @@
 package com.github.litermc.vsmecha.attachment;
 
 import com.github.litermc.vsmecha.block.ToolBaseBlock;
+import com.github.litermc.vsmecha.platform.PlatformHelper;
 import com.github.litermc.vsmecha.util.DestroyUtil;
+import com.github.litermc.vsmecha.util.IFakePlayer;
 import com.github.litermc.vsmecha.util.PredictUtil;
 
+import com.mojang.authlib.GameProfile;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
@@ -31,6 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.LongStream;
 
 @JsonAutoDetect(
@@ -77,12 +83,19 @@ public final class ToolCollisionAttachment {
 		final Vector3dc scaling = ship.getTransform().getShipToWorldScaling();
 		final double mass = ship.getInertiaData().getMass() * scaling.x() * scaling.y() * scaling.z() / 50;
 
-		final Map<BlockPos, Double> impactedBlocks = new HashMap<>();
+		final GameProfile profile = IFakePlayer.DEFAULT_PROFILE; // TODO: add a way to idenfity the owner
+		final ServerPlayer player = PlatformHelper.get().createFakePlayer(level, profile);
+		final IFakePlayer fakePlayer = ((IFakePlayer) (player));
+		final Predicate<Entity> entityFilter = (e) -> !e.skipAttackInteraction(player);
+
+		final Map<BlockPos, PredictUtil.BlockImpactData> impactedBlocks = new HashMap<>();
+		final Map<Entity, PredictUtil.EntityImpactData> impactedEntities = new HashMap<>();
 
 		final Matrix4d tmpMat = new Matrix4d();
 		final AABBd tmpAABB = new AABBd();
 		final List<BlockPos> tmpPosList = new ArrayList<>();
 		final List<Ship> impactingShips = new ArrayList<>();
+		impactingShips.add(null);
 		final Iterator<BlockPos> iter = this.toolBlocks.iterator();
 		while (iter.hasNext()) {
 			final BlockPos pos = iter.next();
@@ -98,29 +111,6 @@ public final class ToolCollisionAttachment {
 				pos.getX() + 1 + COLLISION_EXTEND, pos.getY() + 1 + COLLISION_EXTEND, pos.getZ() + 1 + COLLISION_EXTEND
 			);
 			final AABBd worldDetectBox = detectBox.transform(mat, new AABBd());
-			tmpPosList.clear();
-			BlockPos.betweenClosedStream(
-				Mth.floor(worldDetectBox.minX), Mth.floor(worldDetectBox.minY), Mth.floor(worldDetectBox.minZ),
-				Mth.floor(worldDetectBox.maxX), Mth.floor(worldDetectBox.maxY), Mth.floor(worldDetectBox.maxZ)
-			)
-				.map(BlockPos::immutable)
-				.forEach(tmpPosList::add);
-			for (final BlockPos p : tmpPosList) {
-				final VoxelShape shape = level.getBlockState(p).getCollisionShape(level, p);
-				if (shape.isEmpty()) {
-					continue;
-				}
-				final AABB bounds = shape.bounds().move(p);
-					tmpAABB
-						.setMin(bounds.minX, bounds.minY, bounds.minZ)
-						.setMax(bounds.maxX, bounds.maxY, bounds.maxZ)
-						.transform(matR);
-				if (tmpAABB
-						.intersectsAABB(detectBox)
-				) {
-					impactingShips.add(null);
-				}
-			}
 
 			for (final Ship other : VSGameUtilsKt.getShipsIntersecting(level, worldDetectBox)) {
 				if (other.getId() == ship.getId()) {
@@ -152,11 +142,16 @@ public final class ToolCollisionAttachment {
 					}
 				}
 			}
-			PredictUtil.predict(ship).getImpacting(pos, impactingShips, impactedBlocks);
+			PredictUtil.predict(ship).getImpacting(level, ship, pos, impactingShips, entityFilter, impactedBlocks, impactedEntities);
 		}
-		final double perMass = mass / impactedBlocks.size();
-		impactedBlocks.forEach((block, vel) -> {
-			DestroyUtil.impact(level, block, null, (float) (vel * perMass));
+		final double perMass = mass / (impactedBlocks.size() + impactedEntities.size());
+		impactedBlocks.forEach((block, data) -> {
+			fakePlayer.setDestroySpeed((float) (data.velocity * perMass));
+			fakePlayer.setHasCorrectToolForDrops(data.state);
+			DestroyUtil.impact(level, block, player);
+		});
+		impactedEntities.forEach((entity, data) -> {
+			entity.hurt(player.damageSources().playerAttack(player), (float) (data.velocity * perMass) * data.damageAmplifier);
 		});
 	}
 }

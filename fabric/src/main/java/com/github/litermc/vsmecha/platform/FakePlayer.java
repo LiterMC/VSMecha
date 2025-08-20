@@ -20,6 +20,7 @@ public final class FakePlayer extends net.fabricmc.fabric.api.entity.FakePlayer 
 	private static final EntityDimensions DIMENSIONS = EntityDimensions.fixed(0, 0);
 
 	private float destroySpeed = 1;
+	private BlockState stateHasCorrectTool = null;
 
 	private FakePlayer(ServerLevel serverLevel, GameProfile gameProfile) {
 		super(serverLevel, gameProfile);
@@ -49,16 +50,6 @@ public final class FakePlayer extends net.fabricmc.fabric.api.entity.FakePlayer 
 	@Override
 	public boolean isInvulnerable() {
 		return true;
-	}
-
-	@Override
-	public boolean canBeSeenAsEnemy() {
-		return false;
-	}
-
-	@Override
-	public boolean canBeSeenByAnyone() {
-		return false;
 	}
 
 	@Override
@@ -113,16 +104,17 @@ public final class FakePlayer extends net.fabricmc.fabric.api.entity.FakePlayer 
 
 	@Override
 	public boolean hasCorrectToolForDrops(final BlockState state) {
-		if (!state.requiresCorrectToolForDrops()) {
-			return true;
-		}
-		// TODO: tool based on shape
-		return true;
+		return this.stateHasCorrectTool == state;
 	}
 
 	@Override
 	public void setDestroySpeed(final float destroySpeed) {
 		this.destroySpeed = destroySpeed;
+	}
+
+	@Override
+	public void setHasCorrectToolForDrops(final BlockState stateHasCorrectTool) {
+		this.stateHasCorrectTool = stateHasCorrectTool;
 	}
 
 	@Override

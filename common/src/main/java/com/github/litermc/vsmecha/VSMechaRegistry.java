@@ -9,6 +9,8 @@ import com.github.litermc.vsmecha.block.ToolBaseBlockEntity;
 import com.github.litermc.vsmecha.platform.PlatformHelper;
 import com.github.litermc.vsmecha.platform.RegistrationHelper;
 import com.github.litermc.vsmecha.platform.RegistryEntry;
+import com.github.litermc.vsmecha.shape.IToolShape;
+import com.github.litermc.vsmecha.shape.SwordShape;
 
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
@@ -29,12 +31,26 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.PushReaction;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 public final class VSMechaRegistry {
 	private VSMechaRegistry() {}
+
+	private static final Set<IToolShape> TOOL_SHAPE_SET = new HashSet<>();
+	public static final Collection<IToolShape> TOOL_SHAPES = Collections.unmodifiableCollection(TOOL_SHAPE_SET);
+	static {
+		registerToolShape(SwordShape.INSTANCE);
+	}
+
+	public static void registerToolShape(final IToolShape shape) {
+		TOOL_SHAPE_SET.add(shape);
+	}
 
 	public static void register() {
 		Blocks.REGISTRY.register();
