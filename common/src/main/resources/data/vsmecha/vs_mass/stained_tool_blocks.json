@@ -1,5 +1,80 @@
 [
 	{
+		"block": "vsmecha:white_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:orange_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:magenta_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:light_blue_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:yellow_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:lime_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:pink_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:gray_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:light_gray_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:cyan_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:purple_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:blue_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:brown_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:green_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
+		"block": "vsmecha:red_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	},
+	{
 		"block": "vsmecha:black_tool_block",
 		"mass": 4000,
 		"elasticity": 0.01
