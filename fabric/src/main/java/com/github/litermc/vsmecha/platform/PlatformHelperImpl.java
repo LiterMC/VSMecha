@@ -146,8 +146,12 @@ public final class PlatformHelperImpl implements PlatformHelper {
 	}
 
 	@Override
-	public <T extends BlockEntity> BlockEntityType<T> createBlockEntityType(BiFunction<BlockPos, BlockState, T> factory, Block block) {
-		return FabricBlockEntityTypeBuilder.create(factory::apply).addBlock(block).build();
+	public <T extends BlockEntity> BlockEntityType<T> createBlockEntityType(BiFunction<BlockPos, BlockState, T> factory, Block... blocks) {
+		final FabricBlockEntityTypeBuilder<T> builder = FabricBlockEntityTypeBuilder.create(factory::apply);
+		for (final Block block : blocks) {
+			builder.addBlock(block);
+		}
+		return builder.build();
 	}
 
 	@Override

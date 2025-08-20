@@ -6,16 +6,21 @@ package com.github.litermc.vsmecha.platform;
 
 import com.github.litermc.vsmecha.Constants;
 
+import com.github.litermc.vsmecha.util.IFakePlayer;
 import com.mojang.authlib.GameProfile;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
-public final class FakePlayer extends net.minecraftforge.common.util.FakePlayer {
+public final class FakePlayer extends net.minecraftforge.common.util.FakePlayer implements IFakePlayer {
 	private static final EntityDimensions DIMENSIONS = EntityDimensions.fixed(0, 0);
+
+	private float destroySpeed = 1;
 
 	private FakePlayer(ServerLevel serverLevel, GameProfile gameProfile) {
 		super(serverLevel, gameProfile);
@@ -100,6 +105,26 @@ public final class FakePlayer extends net.minecraftforge.common.util.FakePlayer 
 	@Override
 	public float getStandingEyeHeight(final Pose pose, final EntityDimensions dims) {
 		return 0;
+	}
+
+	@Override
+	public float getDigSpeed(final BlockState state, final BlockPos pos) {
+		System.out.println("destroySpeed: " + this.hasCorrectToolForDrops(state) + ": " + (this.hasCorrectToolForDrops(state) ? Math.max(this.destroySpeed, 1) : Math.min(this.destroySpeed, 1)));
+		return this.hasCorrectToolForDrops(state) ? Math.max(this.destroySpeed, 1) : Math.min(this.destroySpeed, 1);
+	}
+
+	@Override
+	public boolean hasCorrectToolForDrops(final BlockState state) {
+		if (!state.requiresCorrectToolForDrops()) {
+			return true;
+		}
+		// TODO: tool based on shape
+		return true;
+	}
+
+	@Override
+	public void setDestroySpeed(final float destroySpeed) {
+		this.destroySpeed = destroySpeed;
 	}
 
 	@Override

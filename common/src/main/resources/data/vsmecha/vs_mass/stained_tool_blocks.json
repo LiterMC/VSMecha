@@ -1,0 +1,7 @@
+[
+	{
+		"block": "vsmecha:black_tool_block",
+		"mass": 4000,
+		"elasticity": 0.01
+	}
+]

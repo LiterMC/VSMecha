@@ -41,5 +41,6 @@ public class ModEntry implements ModInitializer {
 
 		ServerTickEvents.START_SERVER_TICK.register(VSMechaListeners::preServerTick);
 		ServerTickEvents.END_SERVER_TICK.register(VSMechaListeners::postServerTick);
+		ServerTickEvents.END_WORLD_TICK.register(VSMechaListeners::postLevelTick);
 	}
 }

@@ -56,6 +56,16 @@ public class ModEntry {
 	}
 
 	@SubscribeEvent
+	public static void onLevelTick(final TickEvent.LevelTickEvent event) {
+		if (!(event.level instanceof ServerLevel level)) {
+			return;
+		}
+		switch (event.phase) {
+		case END -> VSMechaListeners.postLevelTick(level);
+		}
+	}
+
+	@SubscribeEvent
 	public static void onRegisterCommands(final RegisterCommandsEvent event) {
 		VSMechaCommands.register(event.getDispatcher());
 	}

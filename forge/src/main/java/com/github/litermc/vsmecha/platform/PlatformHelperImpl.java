@@ -137,8 +137,8 @@ public class PlatformHelperImpl implements PlatformHelper {
 	}
 
 	@Override
-	public <T extends BlockEntity> BlockEntityType<T> createBlockEntityType(BiFunction<BlockPos, BlockState, T> factory, Block block) {
-		return new BlockEntityType<>(factory::apply, Set.of(block), null);
+	public <T extends BlockEntity> BlockEntityType<T> createBlockEntityType(BiFunction<BlockPos, BlockState, T> factory, Block... blocks) {
+		return new BlockEntityType<>(factory::apply, Set.of(blocks), null);
 	}
 
 	@Override

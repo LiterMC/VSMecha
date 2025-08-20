@@ -121,11 +121,11 @@ public interface PlatformHelper {
 	 * Create a new block entity type which serves a particular block.
 	 *
 	 * @param factory The method which creates a new block entity with this type, typically the constructor.
-	 * @param block   The block this block entity exists on.
+	 * @param blocks  The blocks this block entity exists on.
 	 * @param <T>     The type of block entity we're creating.
 	 * @return The new block entity type.
 	 */
-	<T extends BlockEntity> BlockEntityType<T> createBlockEntityType(BiFunction<BlockPos, BlockState, T> factory, Block block);
+	<T extends BlockEntity> BlockEntityType<T> createBlockEntityType(BiFunction<BlockPos, BlockState, T> factory, Block... blocks);
 
 	/**
 	 * Create a menu type which sends additional data when opened.
