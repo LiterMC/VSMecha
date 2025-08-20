@@ -43,7 +43,6 @@ public final class DestroyUtil {
 		if (!tryDestroy(level, pos, player)) {
 			return false;
 		}
-		System.out.println("destroying: " + pos);
 		level.destroyBlock(pos, true, player);
 		return true;
 	}
@@ -61,7 +60,6 @@ public final class DestroyUtil {
 			return true;
 		}
 		final float inc = state.getDestroyProgress(player, level, pos);
-		System.out.println("breaking: " + pos + " inc: " + inc);
 		return addDestroyProgress(level, pos, inc);
 	}
 
@@ -76,13 +74,12 @@ public final class DestroyUtil {
 		final DestroyData data = DestroyData.get(level);
 		final long longPos = pos.asLong();
 		final float newProg = data.destroyProgress.addTo(longPos, inc) + inc;
-		System.out.println("newProg: " + pos + ": " + newProg);
 		data.recentlyActive.add(longPos);
 		if (newProg < 1) {
-			level.destroyBlockProgress(-1, pos, (int) (newProg * 10));
+			level.destroyBlockProgress(-(pos.hashCode() & 0xfffffff), pos, (int) (newProg * 10));
 			return false;
 		}
-		level.destroyBlockProgress(-1, pos, -1);
+		level.destroyBlockProgress(-(pos.hashCode() & 0xfffffff), pos, -1);
 		data.destroyProgress.remove(longPos);
 		data.recentlyActive.remove(longPos);
 		return true;
@@ -90,12 +87,14 @@ public final class DestroyUtil {
 
 	private static void refreshDestroyProgresses(final ServerLevel level) {
 		final DestroyData data = DestroyData.get(level);
-		for (final long pos : data.destroyProgress.keySet()) {
-			if (!data.recentlyActive.contains(pos)) {
-				level.destroyBlockProgress(-1, BlockPos.of(pos), -1);
-				data.destroyProgress.remove(pos);
+		data.destroyProgress.keySet().removeIf((pos) -> {
+			if (data.recentlyActive.contains(pos)) {
+				return false;
 			}
-		}
+			final BlockPos bpos = BlockPos.of(pos);
+			level.destroyBlockProgress(-(bpos.hashCode() & 0xfffffff), bpos, -1);
+			return true;
+		});
 		final int oldSize = data.recentlyActive.size();
 		data.recentlyActive.clear();
 		data.recentlyActive.trim(oldSize);

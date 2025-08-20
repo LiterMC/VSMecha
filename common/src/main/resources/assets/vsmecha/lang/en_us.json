@@ -1,0 +1,19 @@
+{
+	"block.vsmecha.black_tool_block": "Black Tool Block",
+	"block.vsmecha.blue_tool_block": "Blue Tool Block",
+	"block.vsmecha.brown_tool_block": "Brown Tool Block",
+	"block.vsmecha.cyan_tool_block": "Cyan Tool Block",
+	"block.vsmecha.gray_tool_block": "Gray Tool Block",
+	"block.vsmecha.green_tool_block": "Green Tool Block",
+	"block.vsmecha.light_blue_tool_block": "Light Blue Tool Block",
+	"block.vsmecha.light_gray_tool_block": "Light Gray Tool Block",
+	"block.vsmecha.lime_tool_block": "Lime Tool Block",
+	"block.vsmecha.magenta_tool_block": "Magenta Tool Block",
+	"block.vsmecha.orange_tool_block": "Orange Tool Block",
+	"block.vsmecha.pink_tool_block": "Pink Tool Block",
+	"block.vsmecha.purple_tool_block": "Purple Tool Block",
+	"block.vsmecha.red_tool_block": "Red Tool Block",
+	"block.vsmecha.white_tool_block": "White Tool Block",
+	"block.vsmecha.yellow_tool_block": "Yellow Tool Block",
+	"itemGroup.vsmecha": "VS Mecha"
+}

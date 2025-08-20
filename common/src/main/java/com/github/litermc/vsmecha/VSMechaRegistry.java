@@ -46,8 +46,38 @@ public final class VSMechaRegistry {
 	public static final class Blocks {
 		private static final RegistrationHelper<Block> REGISTRY = PlatformHelper.get().createRegistrationHelper(Registries.BLOCK);
 
+		public static final RegistryEntry<StainedToolBlock> WHITE_TOOL_BLOCK =
+			REGISTRY.register("white_tool_block", () -> new StainedToolBlock(DyeColor.WHITE, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.WHITE_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> ORANGE_TOOL_BLOCK =
+			REGISTRY.register("orange_tool_block", () -> new StainedToolBlock(DyeColor.ORANGE, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.ORANGE_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> MAGENTA_TOOL_BLOCK =
+			REGISTRY.register("magenta_tool_block", () -> new StainedToolBlock(DyeColor.MAGENTA, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.MAGENTA_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> LIGHT_BLUE_TOOL_BLOCK =
+			REGISTRY.register("light_blue_tool_block", () -> new StainedToolBlock(DyeColor.LIGHT_BLUE, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.LIGHT_BLUE_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> YELLOW_TOOL_BLOCK =
+			REGISTRY.register("yellow_tool_block", () -> new StainedToolBlock(DyeColor.YELLOW, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.YELLOW_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> LIME_TOOL_BLOCK =
+			REGISTRY.register("lime_tool_block", () -> new StainedToolBlock(DyeColor.LIME, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.LIME_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> PINK_TOOL_BLOCK =
+			REGISTRY.register("pink_tool_block", () -> new StainedToolBlock(DyeColor.PINK, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.PINK_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> GRAY_TOOL_BLOCK =
+			REGISTRY.register("gray_tool_block", () -> new StainedToolBlock(DyeColor.GRAY, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.GRAY_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> LIGHT_GRAY_TOOL_BLOCK =
+			REGISTRY.register("light_gray_tool_block", () -> new StainedToolBlock(DyeColor.LIGHT_GRAY, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.LIGHT_GRAY_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> CYAN_TOOL_BLOCK =
+			REGISTRY.register("cyan_tool_block", () -> new StainedToolBlock(DyeColor.CYAN, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.CYAN_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> PURPLE_TOOL_BLOCK =
+			REGISTRY.register("purple_tool_block", () -> new StainedToolBlock(DyeColor.PURPLE, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.PURPLE_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> BLUE_TOOL_BLOCK =
+			REGISTRY.register("blue_tool_block", () -> new StainedToolBlock(DyeColor.BLUE, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.BLUE_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> BROWN_TOOL_BLOCK =
+			REGISTRY.register("brown_tool_block", () -> new StainedToolBlock(DyeColor.BROWN, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.BROWN_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> GREEN_TOOL_BLOCK =
+			REGISTRY.register("green_tool_block", () -> new StainedToolBlock(DyeColor.GREEN, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.GREEN_CONCRETE)));
+		public static final RegistryEntry<StainedToolBlock> RED_TOOL_BLOCK =
+			REGISTRY.register("red_tool_block", () -> new StainedToolBlock(DyeColor.RED, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.RED_CONCRETE)));
 		public static final RegistryEntry<StainedToolBlock> BLACK_TOOL_BLOCK =
-			REGISTRY.register("black_tool_block", () -> new StainedToolBlock(DyeColor.BLACK, BlockBehaviour.Properties.of()));
+			REGISTRY.register("black_tool_block", () -> new StainedToolBlock(DyeColor.BLACK, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.BLACK_CONCRETE)));
 
 		public static void onRegisterRenderType(final BiConsumer<Block, RenderType> consumer) {
 		}
@@ -69,7 +99,24 @@ public final class VSMechaRegistry {
 		}
 
 		public static final RegistryEntry<BlockEntityType<ToolBaseBlockEntity>> TOOL_BASE =
-			of("tool_base", ToolBaseBlockEntity::new, Blocks.BLACK_TOOL_BLOCK);
+			of("tool_base", ToolBaseBlockEntity::new,
+				Blocks.WHITE_TOOL_BLOCK,
+				Blocks.ORANGE_TOOL_BLOCK,
+				Blocks.MAGENTA_TOOL_BLOCK,
+				Blocks.LIGHT_BLUE_TOOL_BLOCK,
+				Blocks.YELLOW_TOOL_BLOCK,
+				Blocks.LIME_TOOL_BLOCK,
+				Blocks.PINK_TOOL_BLOCK,
+				Blocks.GRAY_TOOL_BLOCK,
+				Blocks.LIGHT_GRAY_TOOL_BLOCK,
+				Blocks.CYAN_TOOL_BLOCK,
+				Blocks.PURPLE_TOOL_BLOCK,
+				Blocks.BLUE_TOOL_BLOCK,
+				Blocks.BROWN_TOOL_BLOCK,
+				Blocks.GREEN_TOOL_BLOCK,
+				Blocks.RED_TOOL_BLOCK,
+				Blocks.BLACK_TOOL_BLOCK
+			);
 
 		private BlockEntities() {}
 	}
@@ -92,6 +139,66 @@ public final class VSMechaRegistry {
 			return entry;
 		}
 
+		public static final RegistryEntry<BlockItem> WHITE_TOOL_BLOCK = ofBlock(
+			Blocks.WHITE_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> ORANGE_TOOL_BLOCK = ofBlock(
+			Blocks.ORANGE_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> MAGENTA_TOOL_BLOCK = ofBlock(
+			Blocks.MAGENTA_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> LIGHT_BLUE_TOOL_BLOCK = ofBlock(
+			Blocks.LIGHT_BLUE_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> YELLOW_TOOL_BLOCK = ofBlock(
+			Blocks.YELLOW_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> LIME_TOOL_BLOCK = ofBlock(
+			Blocks.LIME_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> PINK_TOOL_BLOCK = ofBlock(
+			Blocks.PINK_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> GRAY_TOOL_BLOCK = ofBlock(
+			Blocks.GRAY_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> LIGHT_GRAY_TOOL_BLOCK = ofBlock(
+			Blocks.LIGHT_GRAY_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> CYAN_TOOL_BLOCK = ofBlock(
+			Blocks.CYAN_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> PURPLE_TOOL_BLOCK = ofBlock(
+			Blocks.PURPLE_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> BLUE_TOOL_BLOCK = ofBlock(
+			Blocks.BLUE_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> BROWN_TOOL_BLOCK = ofBlock(
+			Blocks.BROWN_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> GREEN_TOOL_BLOCK = ofBlock(
+			Blocks.GREEN_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> RED_TOOL_BLOCK = ofBlock(
+			Blocks.RED_TOOL_BLOCK,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
 		public static final RegistryEntry<BlockItem> BLACK_TOOL_BLOCK = ofBlock(
 			Blocks.BLACK_TOOL_BLOCK,
 			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))

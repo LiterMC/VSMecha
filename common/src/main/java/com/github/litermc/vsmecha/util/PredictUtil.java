@@ -20,7 +20,7 @@ public final class PredictUtil {
 	private static final double[] PREDICT_SCALES = new double[PREDICT_STEPS];
 	static {
 		for (int i = 0; i < PREDICT_STEPS; i++) {
-			PREDICT_SCALES[i] = 1 + (i + 1.0) / 4;
+			PREDICT_SCALES[i] = 1 + (i + 1.0) / 2;
 		}
 	}
 	private static final Map<Long, PredictData> PREDICT_CACHES = new HashMap<>();

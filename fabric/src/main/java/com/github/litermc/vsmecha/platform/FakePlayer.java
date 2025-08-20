@@ -108,7 +108,7 @@ public final class FakePlayer extends net.fabricmc.fabric.api.entity.FakePlayer 
 
 	@Override
 	public float getDestroySpeed(final BlockState state) {
-		return this.hasCorrectToolForDrops(state) ? Math.max(this.destroySpeed, 1) : Math.min(this.destroySpeed, 1);
+		return this.hasCorrectToolForDrops(state) ? Math.max(this.destroySpeed, 1) : Math.min(this.destroySpeed, 2);
 	}
 
 	@Override
