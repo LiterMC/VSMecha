@@ -14,6 +14,8 @@ import org.joml.Vector3dc;
 public interface IToolShape {
 	boolean isCorrectToolForDrops(BlockState state);
 
+	double getDestroySpeed(BlockState state);
+
 	double damageAmplifier(Entity entity);
 
 	boolean test(ServerLevel level, Vector3dc pos, Vector3dc reactionDir);

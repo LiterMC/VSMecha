@@ -4,6 +4,7 @@ import com.github.litermc.vsmecha.util.VecUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -16,7 +17,12 @@ public class PickAxeShape implements IToolShape {
 
 	@Override
 	public boolean isCorrectToolForDrops(final BlockState state) {
-		return true;
+		return state.is(BlockTags.MINEABLE_WITH_PICKAXE);
+	}
+
+	@Override
+	public double getDestroySpeed(final BlockState state) {
+		return this.isCorrectToolForDrops(state) ? 10 : 1;
 	}
 
 	@Override
@@ -33,15 +39,23 @@ public class PickAxeShape implements IToolShape {
 			}
 		}
 		final Vector3d[] plane = VecUtil.generatePlaneVectors(reactionDir, 2);
+		int count = 0;
 		for (int i = 0; i < plane.length; i++) {
 			if (!ShapeUtil.isAirBlock(level, testPos.set(plane[i]).mul(3).add(pos))) {
-				return false;
+				count++;
+				if (count > 2) {
+					return false;
+				}
 			}
 		}
+		count = 0;
 		VecUtil.planeVectorsToAngled(reactionDir, 70 * Math.PI / 180, plane);
 		for (int i = 0; i < plane.length; i++) {
-			if (!ShapeUtil.isAirBlock(level, testPos.set(plane[i]).mul(4).add(pos))) {
-				return false;
+			if (!ShapeUtil.isAirBlock(level, testPos.set(plane[i]).mul(3.5).add(pos))) {
+				count++;
+				if (count > 4) {
+					return false;
+				}
 			}
 		}
 		return true;

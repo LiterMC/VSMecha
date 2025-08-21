@@ -4,8 +4,10 @@ import com.github.litermc.vsmecha.util.VecUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 import org.joml.Vector3d;
@@ -19,7 +21,15 @@ public class SwordShape implements IToolShape {
 
 	@Override
 	public boolean isCorrectToolForDrops(final BlockState state) {
-		return false;
+		return state.is(Blocks.COBWEB);
+	}
+
+	@Override
+	public double getDestroySpeed(final BlockState state) {
+		if (state.is(Blocks.COBWEB)) {
+			return 10;
+		}
+		return state.is(BlockTags.SWORD_EFFICIENT) ? 2 : 1;
 	}
 
 	@Override

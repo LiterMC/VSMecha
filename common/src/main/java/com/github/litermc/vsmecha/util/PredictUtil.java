@@ -4,6 +4,7 @@ import com.github.litermc.vsmecha.VSMechaRegistry;
 import com.github.litermc.vsmecha.shape.IToolShape;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySelector;
@@ -28,13 +29,9 @@ import java.util.function.Predicate;
 
 public final class PredictUtil {
 
-	private static final int PREDICT_STEPS = 6;
-	private static final double[] PREDICT_SCALES = new double[PREDICT_STEPS];
-	static {
-		for (int i = 0; i < PREDICT_STEPS; i++) {
-			PREDICT_SCALES[i] = 1 + (i + 1.0) / 3;
-		}
-	}
+	private static final int PREDICT_TICKS = 1;
+	private static final int PREDICT_SPT = 4;
+	private static final int PREDICT_STEPS = PREDICT_TICKS * PREDICT_SPT;
 	private static final Map<Long, PredictData> PREDICT_CACHES = new HashMap<>();
 	private static final Vector3dc[] CHECK_POINT_OFFSETS = new Vector3dc[]{
 		new Vector3d(0.5, 0.5, 0.5),
@@ -69,15 +66,18 @@ public final class PredictUtil {
 		data.status = 1;
 		final Matrix4dc prevMat = ship.getPrevTickTransform().getShipToWorld();
 		final Matrix4dc currentMat = ship.getTransform().getShipToWorld();
-		final Quaterniond prevRot = new Quaterniond().setFromNormalized(prevMat);
-		final Quaterniond currentRot = new Quaterniond().setFromNormalized(currentMat);
-		final Quaterniond tmpRot = new Quaterniond();
+		final Matrix4d tmpMat = new Matrix4d();
 
 		data.predictMats[0].set(currentMat);
-		for (int i = 0; i < PREDICT_STEPS; i++) {
-			final double scale = PREDICT_SCALES[i];
-			// We trade accuracy (unnormalized rotation) for speed here
-			prevMat.lerp(currentMat, scale, data.predictMats[i + 1]);
+		final Matrix4d pm = new Matrix4d(prevMat), cm = new Matrix4d(currentMat);
+		for (int t = 0; t < PREDICT_TICKS; t++) {
+			cm.mul(tmpMat.set(prevMat).invert().mul(cm), tmpMat).normalize3x3();
+			pm.set(cm);
+			cm.set(tmpMat);
+			for (int i = 1; i <= PREDICT_SPT; i++) {
+				final Matrix4d m = data.predictMats[t * PREDICT_SPT + i];
+				pm.lerp(cm, (double)(i) / PREDICT_SPT, m);
+			}
 		}
 		return data;
 	}
@@ -108,13 +108,19 @@ public final class PredictUtil {
 				tmp = new Vector3d();
 
 			final List<IToolShape> shapes = new ArrayList<>();
-			CHECK_POINT_OFFSETS[0].add(toolBlock.getX(), toolBlock.getY(), toolBlock.getZ(), toolBlockCheckPos);
-			this.predictMats[0].transformPosition(toolBlockCheckPos, prevPos);
-			this.predictMats[1].transformPosition(toolBlockCheckPos, currPos);
-			opShip.getTransform().getWorldToShip().transformDirection(prevPos.sub(currPos, tmp).normalize());
-			for (final IToolShape shape : VSMechaRegistry.TOOL_SHAPES) {
-				if (shape.test(level, toolBlockCheckPos, tmp)) {
-					shapes.add(shape);
+			{
+				CHECK_POINT_OFFSETS[0].add(toolBlock.getX(), toolBlock.getY(), toolBlock.getZ(), toolBlockCheckPos);
+				this.predictMats[0].transformPosition(toolBlockCheckPos, prevPos);
+				this.predictMats[1].transformPosition(toolBlockCheckPos, currPos);
+				opShip.getTransform().getWorldToShip().transformDirection(prevPos.sub(currPos, tmp).normalize());
+				final Vector3d reactionDir = new Vector3d(Direction.getNearest(tmp.x, tmp.y, tmp.z).step());
+				if (reactionDir.angle(tmp) * 6 > Math.PI) {
+					reactionDir.set(tmp);
+				}
+				for (final IToolShape shape : VSMechaRegistry.TOOL_SHAPES) {
+					if (shape.test(level, toolBlockCheckPos, reactionDir)) {
+						shapes.add(shape);
+					}
 				}
 			}
 
@@ -127,6 +133,7 @@ public final class PredictUtil {
 					this.predictMats[i].transformPosition(toolBlockCheckPos, currPos);
 					final double dist = prevPos.distance(currPos);
 					totalDist += dist;
+					final double vel = dist / Math.max(i - PREDICT_SPT / 2, 1);
 
 					for (final Ship ship : ships) {
 						tmp.set(prevPos);
@@ -139,7 +146,6 @@ public final class PredictUtil {
 							ship.getTransform().getWorldToShip().transformPosition(tmp);
 						}
 						final Vec3 to = new Vec3(tmp.x, tmp.y, tmp.z);
-						final double vel = dist / Math.max(i - PREDICT_STEPS / 2, 1);
 						BlockGetter.traverseBlocks(from, to, impactedBlocks, (posMap, pos) -> {
 							final BlockImpactData data = posMap.computeIfAbsent(pos.immutable(), (pos1) -> new BlockImpactData(level.getBlockState(pos1)));
 							if (data.state.isAir()) {
@@ -147,6 +153,10 @@ public final class PredictUtil {
 							}
 							if (data.velocity < vel) {
 								data.velocity = vel;
+							}
+							final float destroySpeed = (float) (shapes.stream().mapToDouble((s) -> s.getDestroySpeed(data.state)).max().orElse(1));
+							if (data.destroySpeed < destroySpeed) {
+								data.destroySpeed = destroySpeed;
 							}
 							if (!data.hasCorrectToolForDrops) {
 								if (shapes.stream().anyMatch((s) -> s.isCorrectToolForDrops(data.state))) {
@@ -175,7 +185,7 @@ public final class PredictUtil {
 						}
 					}
 
-					if (dist > 0.8 || totalDist > 3) {
+					if (totalDist > 5) {
 						break;
 					}
 				}
@@ -187,6 +197,7 @@ public final class PredictUtil {
 	public static final class BlockImpactData {
 		public final BlockState state;
 		public double velocity = 0;
+		public float destroySpeed = 0;
 		public boolean hasCorrectToolForDrops;
 
 		public BlockImpactData(final BlockState state) {
