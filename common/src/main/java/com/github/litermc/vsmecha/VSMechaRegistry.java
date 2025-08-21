@@ -10,6 +10,7 @@ import com.github.litermc.vsmecha.platform.PlatformHelper;
 import com.github.litermc.vsmecha.platform.RegistrationHelper;
 import com.github.litermc.vsmecha.platform.RegistryEntry;
 import com.github.litermc.vsmecha.shape.IToolShape;
+import com.github.litermc.vsmecha.shape.PickAxeShape;
 import com.github.litermc.vsmecha.shape.SwordShape;
 
 import net.minecraft.client.renderer.RenderType;
@@ -45,6 +46,7 @@ public final class VSMechaRegistry {
 	private static final Set<IToolShape> TOOL_SHAPE_SET = new HashSet<>();
 	public static final Collection<IToolShape> TOOL_SHAPES = Collections.unmodifiableCollection(TOOL_SHAPE_SET);
 	static {
+		registerToolShape(PickAxeShape.INSTANCE);
 		registerToolShape(SwordShape.INSTANCE);
 	}
 

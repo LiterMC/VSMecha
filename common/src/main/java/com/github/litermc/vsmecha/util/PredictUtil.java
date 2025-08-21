@@ -130,9 +130,12 @@ public final class PredictUtil {
 							ship.getTransform().getWorldToShip().transformPosition(tmp);
 						}
 						final Vec3 to = new Vec3(tmp.x, tmp.y, tmp.z);
-						final double vel = from.distanceTo(to) / Math.max(i - 2, 1);
+						final double vel = from.distanceTo(to) / Math.max(i - PREDICT_STEPS / 2, 1);
 						BlockGetter.traverseBlocks(from, to, impactedBlocks, (posMap, pos) -> {
 							final BlockImpactData data = posMap.computeIfAbsent(pos.immutable(), (pos1) -> new BlockImpactData(level.getBlockState(pos1)));
+							if (data.state.isAir()) {
+								return null;
+							}
 							if (data.velocity < vel) {
 								data.velocity = vel;
 							}
@@ -164,6 +167,7 @@ public final class PredictUtil {
 					}
 				}
 			}
+			impactedBlocks.values().removeIf((data) -> data.state.isAir());
 		}
 	}
 

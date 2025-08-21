@@ -46,7 +46,7 @@ import java.util.stream.LongStream;
 	setterVisibility = JsonAutoDetect.Visibility.NONE
 )
 public final class ToolCollisionAttachment {
-	private static final double COLLISION_EXTEND = 2.0 / 16;
+	private static final double COLLISION_EXTEND = 4.0 / 16;
 	private final Set<BlockPos> toolBlocks = new HashSet<>();
 
 	public ToolCollisionAttachment() {
@@ -79,7 +79,6 @@ public final class ToolCollisionAttachment {
 	public void tick(final ServerLevel level, final LoadedServerShip ship) {
 		final ChunkClaim claim = ship.getChunkClaim();
 		final Matrix4dc mat = ship.getTransform().getShipToWorld();
-		final Matrix4dc matR = ship.getTransform().getWorldToShip();
 		final Vector3dc scaling = ship.getTransform().getShipToWorldScaling();
 		final double mass = ship.getInertiaData().getMass() * scaling.x() * scaling.y() * scaling.z() / 50;
 
@@ -91,9 +90,6 @@ public final class ToolCollisionAttachment {
 		final Map<BlockPos, PredictUtil.BlockImpactData> impactedBlocks = new HashMap<>();
 		final Map<Entity, PredictUtil.EntityImpactData> impactedEntities = new HashMap<>();
 
-		final Matrix4d tmpMat = new Matrix4d();
-		final AABBd tmpAABB = new AABBd();
-		final List<BlockPos> tmpPosList = new ArrayList<>();
 		final List<Ship> impactingShips = new ArrayList<>();
 		impactingShips.add(null);
 		final Iterator<BlockPos> iter = this.toolBlocks.iterator();
@@ -116,38 +112,14 @@ public final class ToolCollisionAttachment {
 				if (other.getId() == ship.getId()) {
 					continue;
 				}
-				matR.mul(other.getTransform().getShipToWorld(), tmpMat);
-				worldDetectBox.transform(other.getTransform().getWorldToShip(), tmpAABB);
-				tmpPosList.clear();
-				BlockPos.betweenClosedStream(
-					Mth.floor(tmpAABB.minX), Mth.floor(tmpAABB.minY), Mth.floor(tmpAABB.minZ),
-					Mth.floor(tmpAABB.maxX), Mth.floor(tmpAABB.maxY), Mth.floor(tmpAABB.maxZ)
-				)
-					.map(BlockPos::immutable)
-					.forEach(tmpPosList::add);
-				for (final BlockPos p : tmpPosList) {
-					final VoxelShape shape = level.getBlockState(p).getCollisionShape(level, p);
-					if (shape.isEmpty()) {
-						continue;
-					}
-					final AABB bounds = shape.bounds().move(p);
-					if (
-						tmpAABB
-							.setMin(bounds.minX, bounds.minY, bounds.minZ)
-							.setMax(bounds.maxX, bounds.maxY, bounds.maxZ)
-							.transform(tmpMat)
-							.intersectsAABB(detectBox)
-					) {
-						impactingShips.add(other);
-					}
-				}
+				impactingShips.add(other);
 			}
 			PredictUtil.predict(ship).getImpacting(level, ship, pos, impactingShips, entityFilter, impactedBlocks, impactedEntities);
 		}
 		final double perMass = mass / (impactedBlocks.size() + impactedEntities.size());
 		impactedBlocks.forEach((block, data) -> {
 			fakePlayer.setDestroySpeed((float) (data.velocity * perMass));
-			fakePlayer.setHasCorrectToolForDrops(data.state);
+			fakePlayer.setHasCorrectToolForDrops(data.hasCorrectToolForDrops ? data.state : null);
 			DestroyUtil.impact(level, block, player);
 		});
 		impactedEntities.forEach((entity, data) -> {

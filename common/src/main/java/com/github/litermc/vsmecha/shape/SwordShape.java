@@ -24,7 +24,7 @@ public class SwordShape implements IToolShape {
 
 	@Override
 	public double damageAmplifier(final Entity entity) {
-		return 10;
+		return 5;
 	}
 
 	@Override
