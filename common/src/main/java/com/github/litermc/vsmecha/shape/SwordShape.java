@@ -24,7 +24,7 @@ public class SwordShape implements IToolShape {
 
 	@Override
 	public double damageAmplifier(final Entity entity) {
-		return 20;
+		return 8;
 	}
 
 	@Override
@@ -44,7 +44,7 @@ public class SwordShape implements IToolShape {
 				planeBlocks.add(bpos);
 			}
 		}
-		if (planeBlocks.size() < 1) {
+		if (planeBlocks.size() < 2) {
 			VecUtil.planeVectorsToAngled(reactionDir, 45 * Math.PI / 180, plane);
 			for (int i = 0; i < plane.length; i++) {
 				testPos.set(plane[i]).add(pos);

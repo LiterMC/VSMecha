@@ -37,7 +37,7 @@ final class ShapeUtil {
 
 	static boolean checkFlat(final boolean[] flags, final int index) {
 		final int half = flags.length / 2;
-		final int n = half / 2 / 4 + 1;
+		final int n = half / 2 / 2 + 1;
 		final int low1 = index - n;
 		final int high1 = index + n;
 		final int low2 = low1 + half;

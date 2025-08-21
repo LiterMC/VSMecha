@@ -123,7 +123,7 @@ public final class ToolCollisionAttachment {
 			DestroyUtil.impact(level, block, player);
 		});
 		impactedEntities.forEach((entity, data) -> {
-			entity.hurt(player.damageSources().playerAttack(player), (float) (data.velocity * perMass) * data.damageAmplifier * 0.1f);
+			entity.hurt(player.damageSources().playerAttack(player), (float) (data.velocity * perMass) * data.damageAmplifier * 0.5f);
 		});
 	}
 }
