@@ -14,6 +14,7 @@ import net.minecraft.world.phys.Vec3;
 
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
+import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.Ship;
@@ -31,7 +32,7 @@ public final class PredictUtil {
 	private static final double[] PREDICT_SCALES = new double[PREDICT_STEPS];
 	static {
 		for (int i = 0; i < PREDICT_STEPS; i++) {
-			PREDICT_SCALES[i] = 1 + (i + 1.0) / 2;
+			PREDICT_SCALES[i] = 1 + (i + 1.0) / 3;
 		}
 	}
 	private static final Map<Long, PredictData> PREDICT_CACHES = new HashMap<>();
@@ -68,10 +69,15 @@ public final class PredictUtil {
 		data.status = 1;
 		final Matrix4dc prevMat = ship.getPrevTickTransform().getShipToWorld();
 		final Matrix4dc currentMat = ship.getTransform().getShipToWorld();
+		final Quaterniond prevRot = new Quaterniond().setFromNormalized(prevMat);
+		final Quaterniond currentRot = new Quaterniond().setFromNormalized(currentMat);
+		final Quaterniond tmpRot = new Quaterniond();
 
 		data.predictMats[0].set(currentMat);
 		for (int i = 0; i < PREDICT_STEPS; i++) {
-			prevMat.lerp(currentMat, PREDICT_SCALES[i], data.predictMats[i + 1]);
+			final double scale = PREDICT_SCALES[i];
+			// We trade accuracy (unnormalized rotation) for speed here
+			prevMat.lerp(currentMat, scale, data.predictMats[i + 1]);
 		}
 		return data;
 	}
@@ -115,9 +121,12 @@ public final class PredictUtil {
 			for (final Vector3dc cp : CHECK_POINT_OFFSETS) {
 				cp.add(toolBlock.getX(), toolBlock.getY(), toolBlock.getZ(), toolBlockCheckPos);
 				this.predictMats[0].transformPosition(toolBlockCheckPos, currPos);
+				double totalDist = 0;
 				for (int i = 1; i <= PREDICT_STEPS; i++) {
 					prevPos.set(currPos);
 					this.predictMats[i].transformPosition(toolBlockCheckPos, currPos);
+					final double dist = prevPos.distance(currPos);
+					totalDist += dist;
 
 					for (final Ship ship : ships) {
 						tmp.set(prevPos);
@@ -130,7 +139,7 @@ public final class PredictUtil {
 							ship.getTransform().getWorldToShip().transformPosition(tmp);
 						}
 						final Vec3 to = new Vec3(tmp.x, tmp.y, tmp.z);
-						final double vel = from.distanceTo(to) / Math.max(i - PREDICT_STEPS / 2, 1);
+						final double vel = dist / Math.max(i - PREDICT_STEPS / 2, 1);
 						BlockGetter.traverseBlocks(from, to, impactedBlocks, (posMap, pos) -> {
 							final BlockImpactData data = posMap.computeIfAbsent(pos.immutable(), (pos1) -> new BlockImpactData(level.getBlockState(pos1)));
 							if (data.state.isAir()) {
@@ -164,6 +173,10 @@ public final class PredictUtil {
 								data.damageAmplifier = damageAmplifier;
 							}
 						}
+					}
+
+					if (dist > 0.8 || totalDist > 3) {
+						break;
 					}
 				}
 			}

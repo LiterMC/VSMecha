@@ -80,7 +80,7 @@ public final class ToolCollisionAttachment {
 		final ChunkClaim claim = ship.getChunkClaim();
 		final Matrix4dc mat = ship.getTransform().getShipToWorld();
 		final Vector3dc scaling = ship.getTransform().getShipToWorldScaling();
-		final double mass = ship.getInertiaData().getMass() * scaling.x() * scaling.y() * scaling.z() / 50;
+		final double mass = ship.getInertiaData().getMass() * scaling.x() * scaling.y() * scaling.z() * 1e-3;
 
 		final GameProfile profile = IFakePlayer.DEFAULT_PROFILE; // TODO: add a way to idenfity the owner
 		final ServerPlayer player = PlatformHelper.get().createFakePlayer(level, profile);
@@ -123,7 +123,7 @@ public final class ToolCollisionAttachment {
 			DestroyUtil.impact(level, block, player);
 		});
 		impactedEntities.forEach((entity, data) -> {
-			entity.hurt(player.damageSources().playerAttack(player), (float) (data.velocity * perMass) * data.damageAmplifier);
+			entity.hurt(player.damageSources().playerAttack(player), (float) (data.velocity * perMass) * data.damageAmplifier * 0.1f);
 		});
 	}
 }

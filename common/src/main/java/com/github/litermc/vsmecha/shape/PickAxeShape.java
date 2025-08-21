@@ -27,8 +27,8 @@ public class PickAxeShape implements IToolShape {
 	@Override
 	public boolean test(final ServerLevel level, final Vector3dc pos, final Vector3dc reactionDir) {
 		final Vector3d testPos = new Vector3d();
-		for (int i = 1; i <= 4; i++) {
-			if (!ShapeUtil.isToolBlock(level, testPos.set(reactionDir).mul(5).add(pos))) {
+		for (int i = 1; i <= 3; i++) {
+			if (!ShapeUtil.isToolBlock(level, testPos.set(reactionDir).mul(i).add(pos))) {
 				return false;
 			}
 		}

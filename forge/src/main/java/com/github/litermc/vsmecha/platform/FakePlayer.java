@@ -99,8 +99,8 @@ public final class FakePlayer extends net.minecraftforge.common.util.FakePlayer 
 	}
 
 	@Override
-	public float getDestroySpeed(final BlockState state) {
-		return this.hasCorrectToolForDrops(state) ? Math.max(this.destroySpeed, 1) : Math.min(this.destroySpeed, 2);
+	public float getDigSpeed(final BlockState state, final BlockPos pos) {
+		return this.hasCorrectToolForDrops(state) ? this.destroySpeed : Math.min(this.destroySpeed, 2);
 	}
 
 	@Override
