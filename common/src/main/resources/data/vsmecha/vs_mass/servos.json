@@ -1,0 +1,11 @@
+[
+	{
+		"block": "vsmecha:servo",
+		"mass": 2000,
+		"elasticity": 0.1
+	},
+	{
+		"block": "vsmecha:servo_head",
+		"mass": 150
+	}
+]

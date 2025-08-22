@@ -8,6 +8,8 @@ import com.github.litermc.vsmecha.block.StainedToolBlock;
 import com.github.litermc.vsmecha.block.ToolBaseBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ServoBlock;
 import com.github.litermc.vsmecha.block.joint.ServoBlockEntity;
+import com.github.litermc.vsmecha.block.joint.ServoHeadBlock;
+import com.github.litermc.vsmecha.block.joint.ServoHeadBlockEntity;
 import com.github.litermc.vsmecha.platform.PlatformHelper;
 import com.github.litermc.vsmecha.platform.RegistrationHelper;
 import com.github.litermc.vsmecha.platform.RegistryEntry;
@@ -100,6 +102,7 @@ public final class VSMechaRegistry {
 			REGISTRY.register("black_tool_block", () -> new StainedToolBlock(DyeColor.BLACK, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.BLACK_CONCRETE)));
 
 		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(BlockBehaviour.Properties.of()));
+		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(BlockBehaviour.Properties.of()));
 
 		public static void onRegisterRenderType(final BiConsumer<Block, RenderType> consumer) {
 		}
@@ -144,6 +147,7 @@ public final class VSMechaRegistry {
 			);
 
 		public static final RegistryEntry<BlockEntityType<ServoBlockEntity>> SERVO = of("servo", ServoBlockEntity::new, Blocks.SERVO);
+		public static final RegistryEntry<BlockEntityType<ServoHeadBlockEntity>> SERVO_HEAD = of("servo_head", ServoHeadBlockEntity::new, Blocks.SERVO_HEAD);
 
 		private BlockEntities() {}
 	}
@@ -165,6 +169,15 @@ public final class VSMechaRegistry {
 			TAB_ITEMS.add(entry);
 			return entry;
 		}
+
+		public static final RegistryEntry<BlockItem> SERVO = ofBlock(
+			Blocks.SERVO,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.RARE).stacksTo(16))
+		);
+		public static final RegistryEntry<BlockItem> SERVO_HEAD = ofBlock(
+			Blocks.SERVO_HEAD,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON))
+		);
 
 		public static final RegistryEntry<BlockItem> WHITE_TOOL_BLOCK = ofBlock(
 			Blocks.WHITE_TOOL_BLOCK,
@@ -229,11 +242,6 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<BlockItem> BLACK_TOOL_BLOCK = ofBlock(
 			Blocks.BLACK_TOOL_BLOCK,
 			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
-		);
-
-		public static final RegistryEntry<BlockItem> SERVO = ofBlock(
-			Blocks.SERVO,
-			(block, props) -> new BlockItem(block, props.rarity(Rarity.RARE).stacksTo(16))
 		);
 
 		private Items() {}

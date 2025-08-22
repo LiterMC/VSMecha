@@ -17,8 +17,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import java.util.EnumMap;
 import java.util.Map;
 
-public class ServoBlock extends BaseBlock {
-	private static final double HEIGHT = 14;
+public class ServoHeadBlock extends BaseBlock {
+	private static final double HEIGHT = 1;
 	private static final EnumMap<Direction, VoxelShape> SHAPES = new EnumMap<>(Map.of(
 		Direction.DOWN, Block.box(0, 16 - HEIGHT, 0, 16, 16, 16),
 		Direction.UP, Block.box(0, 0, 0, 16, HEIGHT, 16),
@@ -28,7 +28,7 @@ public class ServoBlock extends BaseBlock {
 		Direction.EAST, Block.box(0, 0, 0, HEIGHT, 16, 16)
 	));
 
-	public ServoBlock(final BlockBehaviour.Properties props) {
+	public ServoHeadBlock(final BlockBehaviour.Properties props) {
 		super(props);
 		this.registerDefaultState(
 			this.defaultBlockState()
@@ -44,17 +44,14 @@ public class ServoBlock extends BaseBlock {
 
 	@Override
 	public BlockState getStateForPlacement(final BlockPlaceContext ctx) {
-		Direction dir = ctx.getNearestLookingDirection();
-		if (!ctx.isSecondaryUseActive()) {
-			dir = dir.getOpposite();
-		}
+		final Direction dir = ctx.getClickedFace();
 		return this.defaultBlockState()
 			.setValue(BlockStateProperties.FACING, dir);
 	}
 
 	@Override
-	public ServoBlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
-		return new ServoBlockEntity(pos, state);
+	public ServoHeadBlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
+		return new ServoHeadBlockEntity(pos, state);
 	}
 
 	@Override

@@ -4,9 +4,9 @@ import com.github.litermc.vsmecha.VSMechaRegistry;
 import com.github.litermc.vsmecha.attachment.ToolCollisionAttachment;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.server.level.ServerLevel;
 
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;

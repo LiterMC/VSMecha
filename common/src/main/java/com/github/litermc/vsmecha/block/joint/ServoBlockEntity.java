@@ -28,14 +28,14 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBlockEntity {
 	private static final Vector3dc ZERO_VEC3 = new Vector3d();
+	private static final Quaterniondc FREEROT_QUAT = new Quaterniond(new AxisAngle4d(Math.PI / 2, 0, 0, 1));
 	private static final double ATTACH_COMPLIANCE = 1e-10;
 	private static final double ROTATE_COMPLIANCE = 1e-10;
 
 	private final Direction direction;
 	private BlockPos headPos = null;
-	private BlockPos pendingHeadPos = null;
-	private int attachConstraintId;
-	private int rotateConstraintId;
+	BlockPos pendingHeadPos = null;
+	ServoInfo servoInfo = null;
 	private volatile boolean working = false;
 	private volatile boolean enabled = true;
 	private volatile double angle = 0;
@@ -80,7 +80,11 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 	}
 
 	public void setEnabled(final boolean enabled) {
+		if (this.enabled == enabled) {
+			return;
+		}
 		this.enabled = enabled;
+		this.setChanged();
 	}
 
 	public double getCurrentAngle() {
@@ -95,37 +99,44 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 		return this.targetAngle;
 	}
 
-	public void setTargetAngle(final double angle) {
-		this.targetAngle = normalizeAngle(angle);
+	public void setTargetAngle(double angle) {
+		angle = normalizeAngle(angle);
+		if (this.targetAngle == angle) {
+			return;
+		}
+		this.targetAngle = angle;
+		this.setChanged();
 	}
 
 	@Override
 	public void load(final CompoundTag data) {
+		this.enabled = data.getBoolean("Enabled");
 		if (data.contains("HeadPos")) {
 			final int[] headPosArr = data.getIntArray("HeadPos");
 			this.pendingHeadPos = new BlockPos(headPosArr[0], headPosArr[1], headPosArr[2]);
 		}
-		this.angle = data.getDouble("Angle");
 		this.targetAngle = data.getDouble("TargetAngle");
 	}
 
 	@Override
 	public void saveShared(final CompoundTag data) {
+		data.putBoolean("Enabled", this.enabled);
 		final BlockPos headPos = this.headPos != null ? this.headPos : this.pendingHeadPos;
 		if (headPos != null) {
 			data.putIntArray("HeadPos", new int[]{headPos.getX(), headPos.getY(), headPos.getZ()});
 		}
-		data.putDouble("Angle", this.angle);
 		data.putDouble("TargetAngle", this.targetAngle);
 	}
 
 	private double readAngle() {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final ServoHeadBlockEntity head = (ServoHeadBlockEntity) (level.getBlockEntity(this.headPos));
 		final ServerShip ship = ShipUtil.getServerShip(level, this.getBlockPos());
 		final ServerShip other = ShipUtil.getServerShip(level, this.headPos);
 		final Direction dir = this.getDirection();
 		final Vector3dc dirVec = new Vector3d(dir.getStepX(), dir.getStepY(), dir.getStepZ());
-		final Quaterniond relRot = ShipUtil.getShipRelativeRotation(ship, other);
+		final Quaterniond relRot = ShipUtil.getShipRelativeRotation(ship, other)
+			.mul(new Quaterniond(dir.getRotation()).invert().mul(new Quaterniond(head.getDirection().getOpposite().getRotation())));
 		final double dot = dirVec.dot(relRot.x, relRot.y, relRot.z);
 		final Vector3d projected = dirVec.mul(dot, new Vector3d());
 		final Quaterniond projRot = new Quaterniond(projected.x, projected.y, projected.z, relRot.w).normalize();
@@ -136,6 +147,14 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 	public boolean attachTo(final BlockPos otherPos) {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos pos = this.getBlockPos();
+
+		if (!(level.getBlockEntity(otherPos) instanceof ServoHeadBlockEntity head)) {
+			return false;
+		}
+		if (head.servoInfo != null) {
+			return false;
+		}
+
 		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
 		final ServerShip ship = ShipUtil.getServerShip(level, pos);
 		final ServerShip other = ShipUtil.getServerShip(level, otherPos);
@@ -144,6 +163,10 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 		final long otherId = ShipUtil.getShipOrDimId(level, other);
 		if (selfId == otherId) {
 			return false;
+		}
+
+		if (this.headPos != null) {
+			this.detach();
 		}
 
 		this.headPos = otherPos;
@@ -161,17 +184,22 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 		this.angle = angle;
 		this.workingAngle = angle;
 		final VSConstraint rotateConstraint = this.createRotationConstraint();
-		this.attachConstraintId = world.createNewConstraint(attachConstraint);
-		this.rotateConstraintId = world.createNewConstraint(rotateConstraint);
+		this.servoInfo = new ServoInfo();
+		this.servoInfo.attachConstraintId = world.createNewConstraint(attachConstraint);
+		this.servoInfo.rotateConstraintId = world.createNewConstraint(rotateConstraint);
+		head.basePos = pos;
+		head.servoInfo = this.servoInfo;
 		this.working = true;
+		this.setChanged();
 		return true;
 	}
 
 	protected VSConstraint createRotationConstraint() {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final ServoHeadBlockEntity head = (ServoHeadBlockEntity) (level.getBlockEntity(this.headPos));
 		final Quaterniondc dir = new Quaterniond(this.getDirection().getRotation());
-		final Quaterniond rotation = new Quaterniond(new AxisAngle4d(this.workingAngle, 0, 1, 0));
-		dir.mul(rotation, rotation).normalize();
+		final Quaterniond rotation = new Quaterniond(head.getDirection().getOpposite().getRotation())
+			.mul(new Quaterniond(new AxisAngle4d(this.workingAngle, 0, 1, 0)));
 		return new VSFixedOrientationConstraint(
 			ShipUtil.getShipOrDimId(level, this.getBlockPos()),
 			ShipUtil.getShipOrDimId(level, this.headPos),
@@ -184,15 +212,15 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 
 	protected VSConstraint createFreeRotationConstraint() {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
-		final Quaterniond rotation = new Quaterniond(this.getDirection().getRotation())
-			.mul(new Quaterniond(new AxisAngle4d(Math.PI / 2, 0, 0, 1)))
-			.normalize();
+		final ServoHeadBlockEntity head = (ServoHeadBlockEntity) (level.getBlockEntity(this.headPos));
+		final Quaterniondc baseRot = new Quaterniond(new Quaterniond(this.getDirection().getRotation())).mul(FREEROT_QUAT);
+		final Quaterniond otherRot = new Quaterniond(head.getDirection().getOpposite().getRotation()).mul(FREEROT_QUAT);
 		return new VSHingeOrientationConstraint(
 			ShipUtil.getShipOrDimId(level, this.getBlockPos()),
 			ShipUtil.getShipOrDimId(level, this.headPos),
 			ROTATE_COMPLIANCE,
-			rotation,
-			rotation,
+			baseRot,
+			otherRot,
 			this.getMaxForce()
 		);
 	}
@@ -205,8 +233,10 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 		}
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
-		world.removeConstraint(this.attachConstraintId);
-		world.removeConstraint(this.rotateConstraintId);
+		world.removeConstraint(this.servoInfo.attachConstraintId);
+		world.removeConstraint(this.servoInfo.rotateConstraintId);
+		this.servoInfo.detached = true;
+		this.servoInfo = null;
 		this.headPos = null;
 		return true;
 	}
@@ -217,27 +247,28 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 		final BlockPos pos = this.getBlockPos();
 		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
 		if (this.headPos != null) {
-			final long selfId = ShipUtil.getShipOrDimId(level, pos);
-			final long otherId = ShipUtil.getShipOrDimId(level, this.headPos);
-			if (selfId == otherId) {
-				this.detach();
+			if (this.servoInfo.detached) {
+				this.servoInfo = null;
+				this.headPos = null;
+			} else {
+				if (
+					!(level.getBlockEntity(this.headPos) instanceof ServoHeadBlockEntity) ||
+					ShipUtil.getShipOrDimId(level, pos) == ShipUtil.getShipOrDimId(level, this.headPos)
+				) {
+					this.detach();
+				}
 			}
 		}
 		if (!this.isAttached()) {
-			if (this.pendingHeadPos != null && this.attachTo(this.pendingHeadPos)) {
+			if (this.pendingHeadPos != null) {
+				this.attachTo(this.pendingHeadPos);
 				this.pendingHeadPos = null;
 				return;
 			}
-			final Direction dir = this.getDirection();
-			final BlockPos pos2 = pos.relative(dir);
-			final Vector3d attachPos = VSGameUtilsKt.toWorldCoordinates(level, new Vector3d(pos2.getX() + 0.5, pos2.getY() + 0.5, pos2.getZ() + 0.5));
+			final Vector3d attachPos = VSGameUtilsKt.toWorldCoordinates(level, new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5));
 			for (final Vector3d p : VSGameUtilsKt.transformToNearbyShipsAndWorld(level, attachPos.x, attachPos.y, attachPos.z, 1)) {
-				final BlockPos bp = BlockPos.containing(p.x, p.y, p.z);
-				final BlockState state = level.getBlockState(bp);
-				if (!state.isAir()) {
-					if (this.attachTo(bp.relative(dir.getOpposite(), 1))) {
-						break;
-					}
+				if (this.attachTo(BlockPos.containing(p.x, p.y, p.z))) {
+					break;
 				}
 			}
 			return;
@@ -262,11 +293,11 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 				} else {
 					this.workingAngle = normalizeAngle(angle + (diff > 0 ? maxSpeed : -maxSpeed));
 				}
-				world.updateConstraint(this.rotateConstraintId, this.createRotationConstraint());
+				world.updateConstraint(this.servoInfo.rotateConstraintId, this.createRotationConstraint());
 				this.working = true;
 			}
 		} else if (wasWorking) {
-			world.updateConstraint(this.rotateConstraintId, this.createFreeRotationConstraint());
+			world.updateConstraint(this.servoInfo.rotateConstraintId, this.createFreeRotationConstraint());
 			this.working = false;
 		}
 
@@ -280,5 +311,11 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 	private static final double normalizeAngle(double angle) {
 		angle = (angle % PI2 + PI2) % PI2;
 		return angle > Math.PI ? angle - PI2 : angle;
+	}
+
+	static final class ServoInfo {
+		boolean detached = false;
+		int attachConstraintId;
+		int rotateConstraintId;
 	}
 }
