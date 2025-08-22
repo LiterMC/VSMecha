@@ -118,7 +118,6 @@ public final class ToolCollisionAttachment {
 		}
 		final double perMass = mass / (impactedBlocks.size() + impactedEntities.size());
 		impactedBlocks.forEach((block, data) -> {
-			System.out.println("data.velocity: " + data.velocity + " perMass: " + perMass + " destroySpeed: " + data.destroySpeed + " hasCorrectToolForDrops: " + data.hasCorrectToolForDrops);
 			fakePlayer.setDestroySpeed((float) (data.velocity * perMass) * data.destroySpeed);
 			fakePlayer.setHasCorrectToolForDrops(data.hasCorrectToolForDrops ? data.state : null);
 			DestroyUtil.impact(level, block, player);

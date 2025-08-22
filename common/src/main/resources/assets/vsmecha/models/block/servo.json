@@ -1,0 +1,9 @@
+{
+	"parent": "minecraft:block/cube_bottom_top",
+	"textures": {
+		"bottom": "vsmecha:block/servo_base_back",
+		"particle": "vsmecha:block/servo_base_side",
+		"side": "vsmecha:block/servo_base_side",
+		"top": "vsmecha:block/servo_base_front"
+	}
+}

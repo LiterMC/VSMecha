@@ -17,7 +17,7 @@ public class PickAxeShape implements IToolShape {
 
 	@Override
 	public boolean isCorrectToolForDrops(final BlockState state) {
-		return state.is(BlockTags.MINEABLE_WITH_PICKAXE);
+		return state.is(BlockTags.MINEABLE_WITH_PICKAXE) || state.is(BlockTags.MINEABLE_WITH_HOE);
 	}
 
 	@Override

@@ -6,6 +6,8 @@ package com.github.litermc.vsmecha;
 
 import com.github.litermc.vsmecha.block.StainedToolBlock;
 import com.github.litermc.vsmecha.block.ToolBaseBlockEntity;
+import com.github.litermc.vsmecha.block.joint.ServoBlock;
+import com.github.litermc.vsmecha.block.joint.ServoBlockEntity;
 import com.github.litermc.vsmecha.platform.PlatformHelper;
 import com.github.litermc.vsmecha.platform.RegistrationHelper;
 import com.github.litermc.vsmecha.platform.RegistryEntry;
@@ -97,6 +99,8 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<StainedToolBlock> BLACK_TOOL_BLOCK =
 			REGISTRY.register("black_tool_block", () -> new StainedToolBlock(DyeColor.BLACK, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.BLACK_CONCRETE)));
 
+		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(BlockBehaviour.Properties.of()));
+
 		public static void onRegisterRenderType(final BiConsumer<Block, RenderType> consumer) {
 		}
 
@@ -107,6 +111,9 @@ public final class VSMechaRegistry {
 		private static final RegistrationHelper<BlockEntityType<?>> REGISTRY = PlatformHelper.get().createRegistrationHelper(Registries.BLOCK_ENTITY_TYPE);
 
 		private static <T extends BlockEntity> RegistryEntry<BlockEntityType<T>> of(final String id, final BiFunction<BlockPos, BlockState, T> factory, final RegistryEntry<? extends Block>... blocks) {
+			if (blocks.length == 0) {
+				throw new AssertionError("No block assigned to block entity " + id);
+			}
 			return REGISTRY.register(id, () -> {
 				final Block[] blks = new Block[blocks.length];
 				for (int i = 0; i < blocks.length; i++) {
@@ -135,6 +142,8 @@ public final class VSMechaRegistry {
 				Blocks.RED_TOOL_BLOCK,
 				Blocks.BLACK_TOOL_BLOCK
 			);
+
+		public static final RegistryEntry<BlockEntityType<ServoBlockEntity>> SERVO = of("servo", ServoBlockEntity::new, Blocks.SERVO);
 
 		private BlockEntities() {}
 	}
@@ -220,6 +229,11 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<BlockItem> BLACK_TOOL_BLOCK = ofBlock(
 			Blocks.BLACK_TOOL_BLOCK,
 			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(16))
+		);
+
+		public static final RegistryEntry<BlockItem> SERVO = ofBlock(
+			Blocks.SERVO,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.RARE).stacksTo(16))
 		);
 
 		private Items() {}

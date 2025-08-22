@@ -1,0 +1,284 @@
+package com.github.litermc.vsmecha.block.joint;
+
+import com.github.litermc.vsmecha.VSMechaRegistry;
+import com.github.litermc.vsmecha.block.BaseBlockEntity;
+import com.github.litermc.vsmecha.util.ShipUtil;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+
+import org.joml.AxisAngle4d;
+import org.joml.Quaterniond;
+import org.joml.Quaterniondc;
+import org.joml.Vector3d;
+import org.joml.Vector3dc;
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
+import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.apigame.constraints.VSAttachmentConstraint;
+import org.valkyrienskies.core.apigame.constraints.VSConstraint;
+import org.valkyrienskies.core.apigame.constraints.VSFixedOrientationConstraint;
+import org.valkyrienskies.core.apigame.constraints.VSHingeOrientationConstraint;
+import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
+
+public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBlockEntity {
+	private static final Vector3dc ZERO_VEC3 = new Vector3d();
+	private static final double ATTACH_COMPLIANCE = 1e-10;
+	private static final double ROTATE_COMPLIANCE = 1e-10;
+
+	private final Direction direction;
+	private BlockPos headPos = null;
+	private BlockPos pendingHeadPos = null;
+	private int attachConstraintId;
+	private int rotateConstraintId;
+	private volatile boolean working = false;
+	private volatile boolean enabled = true;
+	private volatile double angle = 0;
+	private volatile double workingAngle = 0;
+	private volatile double targetAngle = 0;
+
+	public ServoBlockEntity(final BlockEntityType<? extends ServoBlockEntity> type, final BlockPos pos, final BlockState state) {
+		super(type, pos, state);
+		this.direction = state.getValue(BlockStateProperties.FACING);
+	}
+
+	public ServoBlockEntity(final BlockPos pos, final BlockState state) {
+		this(VSMechaRegistry.BlockEntities.SERVO.get(), pos, state);
+	}
+
+	public double getMaxForce() {
+		return 1e10;
+	}
+
+	/**
+	 * @return max rotation speed in rad/t
+	 */
+	public double getMaxRotateSpeed() {
+		return 10 * Math.PI / 180;
+	}
+
+	public Direction getDirection() {
+		return this.direction;
+	}
+
+	@Override
+	public BlockPos getAttachingBlock() {
+		return this.headPos;
+	}
+
+	public boolean isWorking() {
+		return this.working;
+	}
+
+	public boolean isEnabled() {
+		return this.enabled;
+	}
+
+	public void setEnabled(final boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public double getCurrentAngle() {
+		return this.angle;
+	}
+
+	public double getLastWorkingAngle() {
+		return this.workingAngle;
+	}
+
+	public double getTargetAngle() {
+		return this.targetAngle;
+	}
+
+	public void setTargetAngle(final double angle) {
+		this.targetAngle = normalizeAngle(angle);
+	}
+
+	@Override
+	public void load(final CompoundTag data) {
+		if (data.contains("HeadPos")) {
+			final int[] headPosArr = data.getIntArray("HeadPos");
+			this.pendingHeadPos = new BlockPos(headPosArr[0], headPosArr[1], headPosArr[2]);
+		}
+		this.angle = data.getDouble("Angle");
+		this.targetAngle = data.getDouble("TargetAngle");
+	}
+
+	@Override
+	public void saveShared(final CompoundTag data) {
+		final BlockPos headPos = this.headPos != null ? this.headPos : this.pendingHeadPos;
+		if (headPos != null) {
+			data.putIntArray("HeadPos", new int[]{headPos.getX(), headPos.getY(), headPos.getZ()});
+		}
+		data.putDouble("Angle", this.angle);
+		data.putDouble("TargetAngle", this.targetAngle);
+	}
+
+	private double readAngle() {
+		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final ServerShip ship = ShipUtil.getServerShip(level, this.getBlockPos());
+		final ServerShip other = ShipUtil.getServerShip(level, this.headPos);
+		final Direction dir = this.getDirection();
+		final Vector3dc dirVec = new Vector3d(dir.getStepX(), dir.getStepY(), dir.getStepZ());
+		final Quaterniond relRot = ShipUtil.getShipRelativeRotation(ship, other);
+		final double dot = dirVec.dot(relRot.x, relRot.y, relRot.z);
+		final Vector3d projected = dirVec.mul(dot, new Vector3d());
+		final Quaterniond projRot = new Quaterniond(projected.x, projected.y, projected.z, relRot.w).normalize();
+		return -normalizeAngle(2 * Math.acos(projRot.w) * Math.signum(dot));
+	}
+
+	@Override
+	public boolean attachTo(final BlockPos otherPos) {
+		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final BlockPos pos = this.getBlockPos();
+		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
+		final ServerShip ship = ShipUtil.getServerShip(level, pos);
+		final ServerShip other = ShipUtil.getServerShip(level, otherPos);
+
+		final long selfId = ShipUtil.getShipOrDimId(level, ship);
+		final long otherId = ShipUtil.getShipOrDimId(level, other);
+		if (selfId == otherId) {
+			return false;
+		}
+
+		this.headPos = otherPos;
+
+		final VSAttachmentConstraint attachConstraint = new VSAttachmentConstraint(
+			selfId,
+			otherId,
+			ATTACH_COMPLIANCE,
+			new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5),
+			new Vector3d(otherPos.getX() + 0.5, otherPos.getY() + 0.5, otherPos.getZ() + 0.5),
+			this.getMaxForce(),
+			0
+		);
+		final double angle = this.readAngle();
+		this.angle = angle;
+		this.workingAngle = angle;
+		final VSConstraint rotateConstraint = this.createRotationConstraint();
+		this.attachConstraintId = world.createNewConstraint(attachConstraint);
+		this.rotateConstraintId = world.createNewConstraint(rotateConstraint);
+		this.working = true;
+		return true;
+	}
+
+	protected VSConstraint createRotationConstraint() {
+		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final Quaterniondc dir = new Quaterniond(this.getDirection().getRotation());
+		final Quaterniond rotation = new Quaterniond(new AxisAngle4d(this.workingAngle, 0, 1, 0));
+		dir.mul(rotation, rotation).normalize();
+		return new VSFixedOrientationConstraint(
+			ShipUtil.getShipOrDimId(level, this.getBlockPos()),
+			ShipUtil.getShipOrDimId(level, this.headPos),
+			ROTATE_COMPLIANCE,
+			dir,
+			rotation,
+			this.getMaxForce()
+		);
+	}
+
+	protected VSConstraint createFreeRotationConstraint() {
+		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final Quaterniond rotation = new Quaterniond(this.getDirection().getRotation())
+			.mul(new Quaterniond(new AxisAngle4d(Math.PI / 2, 0, 0, 1)))
+			.normalize();
+		return new VSHingeOrientationConstraint(
+			ShipUtil.getShipOrDimId(level, this.getBlockPos()),
+			ShipUtil.getShipOrDimId(level, this.headPos),
+			ROTATE_COMPLIANCE,
+			rotation,
+			rotation,
+			this.getMaxForce()
+		);
+	}
+
+	@Override
+	public boolean detach() {
+		this.pendingHeadPos = null;
+		if (this.headPos == null) {
+			return false;
+		}
+		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
+		world.removeConstraint(this.attachConstraintId);
+		world.removeConstraint(this.rotateConstraintId);
+		this.headPos = null;
+		return true;
+	}
+
+	@Override
+	public void serverTick() {
+		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final BlockPos pos = this.getBlockPos();
+		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
+		if (this.headPos != null) {
+			final long selfId = ShipUtil.getShipOrDimId(level, pos);
+			final long otherId = ShipUtil.getShipOrDimId(level, this.headPos);
+			if (selfId == otherId) {
+				this.detach();
+			}
+		}
+		if (!this.isAttached()) {
+			if (this.pendingHeadPos != null && this.attachTo(this.pendingHeadPos)) {
+				this.pendingHeadPos = null;
+				return;
+			}
+			final Direction dir = this.getDirection();
+			final BlockPos pos2 = pos.relative(dir);
+			final Vector3d attachPos = VSGameUtilsKt.toWorldCoordinates(level, new Vector3d(pos2.getX() + 0.5, pos2.getY() + 0.5, pos2.getZ() + 0.5));
+			for (final Vector3d p : VSGameUtilsKt.transformToNearbyShipsAndWorld(level, attachPos.x, attachPos.y, attachPos.z, 1)) {
+				final BlockPos bp = BlockPos.containing(p.x, p.y, p.z);
+				final BlockState state = level.getBlockState(bp);
+				if (!state.isAir()) {
+					if (this.attachTo(bp.relative(dir.getOpposite(), 1))) {
+						break;
+					}
+				}
+			}
+			return;
+		}
+		final double maxSpeed = this.getMaxRotateSpeed();
+		final double angle = this.readAngle();
+		final double targetAngle = this.getTargetAngle();
+		final boolean wasWorking = this.working;
+		this.angle = angle;
+
+		// TODO: consume energy
+		final boolean canWork = true;
+
+		if (this.enabled && canWork) {
+			double diff = normalizeAngle(targetAngle - angle);
+			if (Math.abs(diff) < 0.01) {
+				diff = 0;
+			}
+			if (diff != 0 || !wasWorking) {
+				if (Math.abs(diff) <= this.getMaxRotateSpeed()) {
+					this.workingAngle = targetAngle;
+				} else {
+					this.workingAngle = normalizeAngle(angle + (diff > 0 ? maxSpeed : -maxSpeed));
+				}
+				world.updateConstraint(this.rotateConstraintId, this.createRotationConstraint());
+				this.working = true;
+			}
+		} else if (wasWorking) {
+			world.updateConstraint(this.rotateConstraintId, this.createFreeRotationConstraint());
+			this.working = false;
+		}
+
+	}
+
+	private static final double PI2 = Math.PI * 2;
+
+	/**
+	 * @return normalized angle in range of (-{@link Math.PI}, {@link Math.PI}]
+	 */
+	private static final double normalizeAngle(double angle) {
+		angle = (angle % PI2 + PI2) % PI2;
+		return angle > Math.PI ? angle - PI2 : angle;
+	}
+}

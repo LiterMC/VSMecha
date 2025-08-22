@@ -1,0 +1,61 @@
+package com.github.litermc.vsmecha.util;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.server.level.ServerLevel;
+
+import org.joml.Quaterniond;
+import org.joml.Quaterniondc;
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
+import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
+
+public final class ShipUtil {
+	private static final Quaterniondc ZERO_QUAT = new Quaterniond();
+
+	private ShipUtil() {}
+
+	public static ServerShip getServerShip(final ServerLevel level, final BlockPos pos) {
+		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
+		final ServerShip ship = world.getAllShips().getByChunkPos(
+			SectionPos.blockToSectionCoord(pos.getX()),
+			SectionPos.blockToSectionCoord(pos.getZ()),
+			VSGameUtilsKt.getDimensionId(level)
+		);
+		if (ship == null) {
+			return null;
+		}
+		final LoadedServerShip loaded = world.getLoadedShips().getById(ship.getId());
+		return loaded == null ? ship : loaded;
+	}
+
+	public static long getShipOrDimId(final ServerLevel level, final BlockPos pos) {
+		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
+		final ServerShip ship = world.getAllShips().getByChunkPos(
+			SectionPos.blockToSectionCoord(pos.getX()),
+			SectionPos.blockToSectionCoord(pos.getZ()),
+			VSGameUtilsKt.getDimensionId(level)
+		);
+		if (ship != null) {
+			return ship.getId();
+		}
+		return world.getDimensionToGroundBodyIdImmutable().get(VSGameUtilsKt.getDimensionId(level));
+	}
+
+	public static long getShipOrDimId(final ServerLevel level, final ServerShip ship) {
+		if (ship != null) {
+			return ship.getId();
+		}
+		return VSGameUtilsKt.getShipObjectWorld(level).getDimensionToGroundBodyIdImmutable().get(VSGameUtilsKt.getDimensionId(level));
+	}
+
+	/**
+	 * @return rotation {@code other} relative to {@code ship}
+	 */
+	public static Quaterniond getShipRelativeRotation(final ServerShip ship, final ServerShip other) {
+		final Quaterniond baseRot = ship == null ? new Quaterniond() : new Quaterniond(ship.getTransform().getShipToWorldRotation());
+		final Quaterniondc otherRot = other == null ? ZERO_QUAT : other.getTransform().getShipToWorldRotation();
+		return otherRot.mul(baseRot.invert(), baseRot);
+	}
+}
