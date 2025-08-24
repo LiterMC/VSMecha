@@ -3,9 +3,11 @@ package com.github.litermc.vsmecha.util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
+import org.joml.Vector3d;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
@@ -15,6 +17,14 @@ public final class ShipUtil {
 	private static final Quaterniondc ZERO_QUAT = new Quaterniond();
 
 	private ShipUtil() {}
+
+	public static BlockPos toWorldBlockPos(final Level level, final BlockPos pos) {
+		if (!VSGameUtilsKt.isBlockInShipyard(level, pos)) {
+			return pos;
+		}
+		final Vector3d wpos = VSGameUtilsKt.toWorldCoordinates(pos);
+		return BlockPos.containing(wpos.x, wpos.y, wpos.z);
+	}
 
 	public static ServerShip getServerShip(final ServerLevel level, final BlockPos pos) {
 		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);

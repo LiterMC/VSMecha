@@ -177,6 +177,12 @@ public final class PlatformHelperImpl implements PlatformHelper {
 	}
 
 	@Override
+	public int getBurnTime(ItemStack stack) {
+		var fuel = FuelRegistry.INSTANCE.get(stack.getItem());
+		return fuel == null ? 0 : fuel;
+	}
+
+	@Override
 	public CreativeModeTab.Builder newCreativeModeTab() {
 		return FabricItemGroup.builder();
 	}

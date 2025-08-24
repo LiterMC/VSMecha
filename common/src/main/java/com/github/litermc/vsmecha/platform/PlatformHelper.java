@@ -169,6 +169,14 @@ public interface PlatformHelper {
 	Packet<ClientGamePacketListener> createPacket(NetworkMessage<ClientNetworkContext> message);
 
 	/**
+	 * Get the amount of fuel an item provides.
+	 *
+	 * @param stack The item to burn.
+	 * @return The amount of fuel it provides.
+	 */
+	int getBurnTime(ItemStack stack);
+
+	/**
 	 * Create a builder for a new creative tab.
 	 *
 	 * @return The creative tab builder.

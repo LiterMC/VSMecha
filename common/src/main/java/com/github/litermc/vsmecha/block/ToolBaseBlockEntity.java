@@ -22,6 +22,8 @@ public class ToolBaseBlockEntity extends BaseBlockEntity {
 
 	@Override
 	public void serverTick() {
+		super.serverTick();
+
 		final BlockPos pos = this.getBlockPos();
 		final ServerShip ship = VSGameUtilsKt.getShipObjectManagingPos((ServerLevel) (this.getLevel()), pos);
 		if (ship != null) {

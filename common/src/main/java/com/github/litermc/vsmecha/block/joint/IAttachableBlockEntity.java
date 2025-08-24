@@ -9,6 +9,14 @@ public interface IAttachableBlockEntity {
 
 	BlockPos getAttachingBlock();
 
+	/**
+	 * This method does not need return if the block is not attached
+	 *
+	 * @throws RuntimeException if peer ship does not present
+	 * @return peer ship's ID
+	 */
+	long getPeerShipId();
+
 	boolean attachTo(BlockPos otherPos);
 
 	boolean detach();

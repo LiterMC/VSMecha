@@ -71,6 +71,12 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 		return this.headPos;
 	}
 
+	@Override
+	public long getPeerShipId() {
+		final ServerShip other = ShipUtil.getServerShip(level, this.headPos);
+		return other.getId();
+	}
+
 	public boolean isWorking() {
 		return this.working;
 	}
@@ -119,7 +125,7 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 	}
 
 	@Override
-	public void saveShared(final CompoundTag data) {
+	protected void saveShared(final CompoundTag data) {
 		data.putBoolean("Enabled", this.enabled);
 		final BlockPos headPos = this.headPos != null ? this.headPos : this.pendingHeadPos;
 		if (headPos != null) {
