@@ -4,8 +4,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 
-public abstract class ThermalEnergyCoreBlock extends ThermalBasedBlock {
-	protected ThermalEnergyCoreBlock(final BlockBehaviour.Properties props) {
+public class ThermalEnergyCoreBlock extends EnergyBasedBlock {
+	public ThermalEnergyCoreBlock(final BlockBehaviour.Properties props) {
 		super(props);
 	}
 

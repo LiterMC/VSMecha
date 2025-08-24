@@ -10,12 +10,14 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity implements IEnergyBlockEntity {
 	private EnergyNetwork network = null;
-	private boolean enabled = true;
+	private volatile boolean enabled;
 	private int priority;
 	private int energy = 0;
+	private int empTicks = 0;
 
 	protected EnergyBasedBlockEntity(final BlockEntityType<? extends EnergyBasedBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
+		this.enabled = this.getDefaultEnabled();
 		this.priority = this.getDefaultEnergyPriority();
 	}
 
@@ -24,8 +26,12 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		this.network = network;
 	}
 
+	public boolean getDefaultEnabled() {
+		return true;
+	}
+
 	public boolean isEnabled() {
-		return this.enabled;
+		return this.enabled && this.empTicks == 0;
 	}
 
 	public void setEnabled(final boolean enabled) {
@@ -33,6 +39,18 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 			return;
 		}
 		this.enabled = enabled;
+		this.setChanged();
+	}
+
+	public int getEMPTicks() {
+		return this.empTicks;
+	}
+
+	public void setEMPTicks(final int empTicks) {
+		if (this.empTicks == empTicks) {
+			return;
+		}
+		this.empTicks = empTicks;
 		this.setChanged();
 	}
 
@@ -122,6 +140,7 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		this.enabled = data.getBoolean("Enabled");
 		this.priority = data.getInt("Priority");
 		this.energy = data.getInt("Energy");
+		this.empTicks = data.getInt("EMPTicks");
 	}
 
 	@Override
@@ -130,5 +149,6 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		data.putBoolean("Enabled", this.enabled);
 		data.putInt("Priority", this.priority);
 		data.putInt("Energy", this.energy);
+		data.putInt("EMPTicks", this.empTicks);
 	}
 }

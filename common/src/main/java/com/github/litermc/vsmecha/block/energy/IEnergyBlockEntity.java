@@ -25,7 +25,7 @@ public interface IEnergyBlockEntity {
 	/**
 	 * Update the block's energy priority.
 	 * The block should inform {@link EnergyNetwork} its priority is changed via {@link EnergyNetwork#updatePriority}.
-	 * Priority should not be changed during network ticks.
+	 * Priority should not be changed during network ticks, which also means it should not be changed concurrently.
 	 *
 	 * @param priority changed priority
 	 * @see getEnergyPriority

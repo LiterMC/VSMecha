@@ -4,10 +4,17 @@ import com.github.litermc.vsmecha.api.HeatAPI;
 import com.github.litermc.vsmecha.block.BaseBlockEntity;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.server.level.ServerLevel;
+
+import java.util.EnumMap;
 
 public abstract class ThermalBasedBlockEntity extends BaseBlockEntity implements IThermalBlockEntity {
 	private int heat = -1;
@@ -50,7 +57,7 @@ public abstract class ThermalBasedBlockEntity extends BaseBlockEntity implements
 	public abstract int getDangerousHeatLimit();
 
 	public boolean isDangerous() {
-		return this.getHeat() > this.gerDangerousHeatLimit();
+		return this.getHeat() > this.getDangerousHeatLimit();
 	}
 
 	@Override
@@ -78,9 +85,10 @@ public abstract class ThermalBasedBlockEntity extends BaseBlockEntity implements
 		super.serverTick();
 
 		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final BlockPos pos = this.getBlockPos();
 
 		long totalHeat = this.heat;
-		final EnumMap<Direction, Integer> heats = new EnumMap<>();
+		final EnumMap<Direction, Integer> heats = new EnumMap<>(Direction.class);
 		for (final Direction dir : Direction.values()) {
 			final int nbHeat = HeatAPI.getBlockHeat(level, pos.relative(dir));
 			if (nbHeat == Integer.MAX_VALUE) {
@@ -97,13 +105,13 @@ public abstract class ThermalBasedBlockEntity extends BaseBlockEntity implements
 			}
 			final int diff = (int) ((avgHeat - nbHeat) * 2 / 10);
 			this.transferHeat(-diff);
-			if (level.getBlockEntity(pos) instanceof IThermalBlockEntity tbe) {
+			if (level.getBlockEntity(pos.relative(dir)) instanceof IThermalBlockEntity tbe) {
 				tbe.transferHeat(diff);
 			}
 		}
 
 		if (this.heat >= this.getMaxHeatCapacity()) {
-			level.setBlock(this.getBlockPos(), Blocks.LAVA.defaultBlockState().setValue(LiquidBlock.LEVEL, 1), Block.UPDATE_ALL);
+			level.setBlock(pos, Blocks.LAVA.defaultBlockState().setValue(LiquidBlock.LEVEL, 1), Block.UPDATE_ALL);
 		}
 	}
 }

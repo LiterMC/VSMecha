@@ -63,6 +63,7 @@ import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.common.crafting.conditions.ICondition;
 import net.minecraftforge.common.crafting.conditions.ModLoadedCondition;
 import net.minecraftforge.common.extensions.IForgeMenuType;
+import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.fml.ModList;
@@ -176,6 +177,16 @@ public class PlatformHelperImpl implements PlatformHelper {
 		return FakePlayer.create(world, profile);
 	}
 
+	@Override
+	public EnergyInterface getEnergyInterface(final ServerLevel level, final BlockPos pos, final Direction dir) {
+		final BlockEntity be = level.getBlockEntity(pos);
+		if (be == null) {
+			return null;
+		}
+		final IEnergyStorage storage = be.getCapability(ForgeCapabilities.ENERGY, dir).orElse(null);
+		return storage == null ? null : new WrappedEnergyStorage(storage);
+	}
+
 	private record RegistryWrapperImpl<T>(
 		ResourceLocation name, ForgeRegistry<T> registry
 	) implements RegistryWrappers.RegistryWrapper<T> {
@@ -241,6 +252,18 @@ public class PlatformHelperImpl implements PlatformHelper {
 		@Override
 		public T get() {
 			return object().get();
+		}
+	}
+
+	private record WrappedEnergyStorage(IEnergyStorage storage) implements EnergyInterface {
+		@Override
+		public int pushEnergy(final int available, final boolean simulate) {
+			return this.storage.receiveEnergy(available, simulate);
+		}
+
+		@Override
+		public int pullEnergy(final int needs, final boolean simulate) {
+			return this.storage.extractEnergy(needs, simulate);
 		}
 	}
 }

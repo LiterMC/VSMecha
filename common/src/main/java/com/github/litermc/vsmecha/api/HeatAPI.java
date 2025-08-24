@@ -1,17 +1,22 @@
 package com.github.litermc.vsmecha.api;
 
-import com.github.litermc.vsmecha.energy.IThermalBlockEntity;
+import com.github.litermc.vsmecha.block.energy.IThermalBlockEntity;
 import com.github.litermc.vsmecha.util.ShipUtil;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public final class HeatAPI {
 	private HeatAPI() {}
@@ -41,7 +46,8 @@ public final class HeatAPI {
 	}
 
 	public static int getBlockHeat(final ServerLevel level, final BlockPos pos) {
-		if (level.getBlockEntity(pos) instanceof IThermalBlockEntity tbe) {
+		final BlockEntity be = level.getBlockEntity(pos);
+		if (be instanceof IThermalBlockEntity tbe && !be.isRemoved() && be.getLevel() == level) {
 			return tbe.getHeat();
 		}
 		final BlockState state = level.getBlockState(pos);
@@ -62,7 +68,7 @@ public final class HeatAPI {
 	}
 
 	public static int getBiomeHeat(final ServerLevel level, final BlockPos pos) {
-		return getBiomeHeat(level, level.getBiome(ShipUtil.toWorldBlockPos(pos)));
+		return getBiomeHeat(level, level.getBiome(ShipUtil.toWorldBlockPos(level, pos)));
 	}
 
 	public static int getBiomeHeat(final ServerLevel level, final Holder<Biome> biome) {

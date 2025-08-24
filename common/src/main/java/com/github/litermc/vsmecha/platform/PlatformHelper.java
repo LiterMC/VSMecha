@@ -12,6 +12,7 @@ import com.github.litermc.vsmecha.config.ConfigFile;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -28,6 +29,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuConstructor;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -202,6 +204,8 @@ public interface PlatformHelper {
 		// Any subclass of ServerPlayer (i.e. Forge's FakePlayer) is assumed to be a fake.
 		return player.connection == null || player.getClass() != ServerPlayer.class;
 	}
+
+	EnergyInterface getEnergyInterface(ServerLevel level, BlockPos pos, Direction dir);
 
 	final class Instance {
 		static final @Nullable PlatformHelper INSTANCE;

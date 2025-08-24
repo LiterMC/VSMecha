@@ -4,8 +4,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 
-public abstract class PlasmaCapacitorBlock extends ThermalBasedBlock {
-	protected PlasmaCapacitorBlock(final BlockBehaviour.Properties props) {
+public class PlasmaCapacitorBlock extends EnergyBasedBlock {
+	public PlasmaCapacitorBlock(final BlockBehaviour.Properties props) {
 		super(props);
 	}
 

@@ -6,6 +6,12 @@ package com.github.litermc.vsmecha;
 
 import com.github.litermc.vsmecha.block.StainedToolBlock;
 import com.github.litermc.vsmecha.block.ToolBaseBlockEntity;
+import com.github.litermc.vsmecha.block.energy.EnergyPortBlock;
+import com.github.litermc.vsmecha.block.energy.EnergyPortBlockEntity;
+import com.github.litermc.vsmecha.block.energy.PlasmaCapacitorBlock;
+import com.github.litermc.vsmecha.block.energy.PlasmaCapacitorBlockEntity;
+import com.github.litermc.vsmecha.block.energy.ThermalEnergyCoreBlock;
+import com.github.litermc.vsmecha.block.energy.ThermalEnergyCoreBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ServoBlock;
 import com.github.litermc.vsmecha.block.joint.ServoBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ServoHeadBlock;
@@ -68,6 +74,13 @@ public final class VSMechaRegistry {
 	public static final class Blocks {
 		private static final RegistrationHelper<Block> REGISTRY = PlatformHelper.get().createRegistrationHelper(Registries.BLOCK);
 
+		public static final RegistryEntry<EnergyPortBlock> ENERGY_PORT = REGISTRY.register("energy_port", () -> new EnergyPortBlock(BlockBehaviour.Properties.of()));
+		public static final RegistryEntry<PlasmaCapacitorBlock> PLASMA_CAPACITOR = REGISTRY.register("plasma_capacitor", () -> new PlasmaCapacitorBlock(BlockBehaviour.Properties.of()));
+		public static final RegistryEntry<ThermalEnergyCoreBlock> THERMAL_ENERGY_CORE = REGISTRY.register("thermal_energy_core", () -> new ThermalEnergyCoreBlock(BlockBehaviour.Properties.of()));
+
+		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(BlockBehaviour.Properties.of()));
+		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(BlockBehaviour.Properties.of()));
+
 		public static final RegistryEntry<StainedToolBlock> WHITE_TOOL_BLOCK =
 			REGISTRY.register("white_tool_block", () -> new StainedToolBlock(DyeColor.WHITE, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.WHITE_CONCRETE)));
 		public static final RegistryEntry<StainedToolBlock> ORANGE_TOOL_BLOCK =
@@ -101,9 +114,6 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<StainedToolBlock> BLACK_TOOL_BLOCK =
 			REGISTRY.register("black_tool_block", () -> new StainedToolBlock(DyeColor.BLACK, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.BLACK_CONCRETE)));
 
-		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(BlockBehaviour.Properties.of()));
-		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(BlockBehaviour.Properties.of()));
-
 		public static void onRegisterRenderType(final BiConsumer<Block, RenderType> consumer) {
 		}
 
@@ -126,6 +136,13 @@ public final class VSMechaRegistry {
 			});
 		}
 
+		public static final RegistryEntry<BlockEntityType<EnergyPortBlockEntity>> ENERGY_PORT = of("energy_port", EnergyPortBlockEntity::new, Blocks.ENERGY_PORT);
+		public static final RegistryEntry<BlockEntityType<PlasmaCapacitorBlockEntity>> PLASMA_CAPACITOR = of("plasma_capacitor", PlasmaCapacitorBlockEntity::new, Blocks.PLASMA_CAPACITOR);
+		public static final RegistryEntry<BlockEntityType<ThermalEnergyCoreBlockEntity>> THERMAL_ENERGY_CORE = of("thermal_energy_core", ThermalEnergyCoreBlockEntity::new, Blocks.THERMAL_ENERGY_CORE);
+
+		public static final RegistryEntry<BlockEntityType<ServoBlockEntity>> SERVO = of("servo", ServoBlockEntity::new, Blocks.SERVO);
+		public static final RegistryEntry<BlockEntityType<ServoHeadBlockEntity>> SERVO_HEAD = of("servo_head", ServoHeadBlockEntity::new, Blocks.SERVO_HEAD);
+
 		public static final RegistryEntry<BlockEntityType<ToolBaseBlockEntity>> TOOL_BASE =
 			of("tool_base", ToolBaseBlockEntity::new,
 				Blocks.WHITE_TOOL_BLOCK,
@@ -145,9 +162,6 @@ public final class VSMechaRegistry {
 				Blocks.RED_TOOL_BLOCK,
 				Blocks.BLACK_TOOL_BLOCK
 			);
-
-		public static final RegistryEntry<BlockEntityType<ServoBlockEntity>> SERVO = of("servo", ServoBlockEntity::new, Blocks.SERVO);
-		public static final RegistryEntry<BlockEntityType<ServoHeadBlockEntity>> SERVO_HEAD = of("servo_head", ServoHeadBlockEntity::new, Blocks.SERVO_HEAD);
 
 		private BlockEntities() {}
 	}
@@ -169,6 +183,19 @@ public final class VSMechaRegistry {
 			TAB_ITEMS.add(entry);
 			return entry;
 		}
+
+		public static final RegistryEntry<BlockItem> ENERGY_PORT = ofBlock(
+			Blocks.ENERGY_PORT,
+			(block, props) -> new BlockItem(block, props)
+		);
+		public static final RegistryEntry<BlockItem> PLASMA_CAPACITOR = ofBlock(
+			Blocks.PLASMA_CAPACITOR,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.EPIC).stacksTo(1))
+		);
+		public static final RegistryEntry<BlockItem> THERMAL_ENERGY_CORE = ofBlock(
+			Blocks.THERMAL_ENERGY_CORE,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON))
+		);
 
 		public static final RegistryEntry<BlockItem> SERVO = ofBlock(
 			Blocks.SERVO,
@@ -253,7 +280,7 @@ public final class VSMechaRegistry {
 		private static final RegistryEntry<CreativeModeTab> TAB = REGISTRY.register(
 			"tab",
 			() -> PlatformHelper.get().newCreativeModeTab()
-				// .icon(() -> new ItemStack(Items.CHUNK_LOADER.get()))
+				.icon(() -> new ItemStack(Items.PLASMA_CAPACITOR.get()))
 				.title(Component.translatable("itemGroup." + Constants.MOD_ID))
 				.displayItems((context, out) -> {
 					Items.TAB_ITEMS.stream().map(RegistryEntry::get).forEach(out::accept);

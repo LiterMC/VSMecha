@@ -22,7 +22,8 @@ public final class ShipUtil {
 		if (!VSGameUtilsKt.isBlockInShipyard(level, pos)) {
 			return pos;
 		}
-		final Vector3d wpos = VSGameUtilsKt.toWorldCoordinates(pos);
+		final Vector3d wpos = new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
+		VSGameUtilsKt.toWorldCoordinates(level, wpos);
 		return BlockPos.containing(wpos.x, wpos.y, wpos.z);
 	}
 

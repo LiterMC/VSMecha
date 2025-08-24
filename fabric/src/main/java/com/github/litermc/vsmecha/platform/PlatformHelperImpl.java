@@ -33,6 +33,7 @@ import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
 import net.fabricmc.fabric.api.tag.convention.v1.ConventionalItemTags;
 import net.fabricmc.fabric.api.transfer.v1.item.InventoryStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.commands.synchronization.ArgumentTypeInfo;
 import net.minecraft.core.BlockPos;
@@ -73,6 +74,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
+import team.reborn.energy.api.EnergyStorage;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -192,6 +194,12 @@ public final class PlatformHelperImpl implements PlatformHelper {
 		return FakePlayer.create(world, name);
 	}
 
+	@Override
+	public EnergyInterface getEnergyInterface(final ServerLevel level, final BlockPos pos, final Direction dir) {
+		final EnergyStorage storage = EnergyStorage.SIDED.find(level, pos, dir);
+		return storage == null ? null : new WrappedEnergyStorage(storage);
+	}
+
 	private record RegistryWrapperImpl<T>(
 		ResourceLocation name, Registry<T> registry
 	) implements RegistryWrappers.RegistryWrapper<T> {
@@ -300,6 +308,34 @@ public final class PlatformHelperImpl implements PlatformHelper {
 		@Override
 		public void writeScreenOpeningData(ServerPlayer player, FriendlyByteBuf buf) {
 			data.toBytes(buf);
+		}
+	}
+
+	private record WrappedEnergyStorage(EnergyStorage storage) implements EnergyInterface {
+		@Override
+		public int pushEnergy(final int available, final boolean simulate) {
+			try (
+				final Transaction transaction = Transaction.openOuter()
+			) {
+				final int inserted = (int) (this.storage.insert(available, transaction));
+				if (!simulate) {
+					transaction.commit();
+				}
+				return inserted;
+			}
+		}
+
+		@Override
+		public int pullEnergy(final int needs, final boolean simulate) {
+			try (
+				final Transaction transaction = Transaction.openOuter()
+			) {
+				final int extracted = (int) (this.storage.extract(needs, transaction));
+				if (!simulate) {
+					transaction.commit();
+				}
+				return extracted;
+			}
 		}
 	}
 }

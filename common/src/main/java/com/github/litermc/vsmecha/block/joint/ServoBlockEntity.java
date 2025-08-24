@@ -1,7 +1,7 @@
 package com.github.litermc.vsmecha.block.joint;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
-import com.github.litermc.vsmecha.block.BaseBlockEntity;
+import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
 import com.github.litermc.vsmecha.util.ShipUtil;
 
 import net.minecraft.core.BlockPos;
@@ -26,7 +26,7 @@ import org.valkyrienskies.core.apigame.constraints.VSHingeOrientationConstraint;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBlockEntity {
+public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttachableBlockEntity {
 	private static final Vector3dc ZERO_VEC3 = new Vector3d();
 	private static final Quaterniondc FREEROT_QUAT = new Quaterniond(new AxisAngle4d(Math.PI / 2, 0, 0, 1));
 	private static final double ATTACH_COMPLIANCE = 1e-10;
@@ -37,7 +37,6 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 	BlockPos pendingHeadPos = null;
 	ServoInfo servoInfo = null;
 	private volatile boolean working = false;
-	private volatile boolean enabled = true;
 	private volatile double angle = 0;
 	private volatile double workingAngle = 0;
 	private volatile double targetAngle = 0;
@@ -73,24 +72,12 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 
 	@Override
 	public long getPeerShipId() {
-		final ServerShip other = ShipUtil.getServerShip(level, this.headPos);
+		final ServerShip other = ShipUtil.getServerShip((ServerLevel) (this.getLevel()), this.headPos);
 		return other.getId();
 	}
 
 	public boolean isWorking() {
 		return this.working;
-	}
-
-	public boolean isEnabled() {
-		return this.enabled;
-	}
-
-	public void setEnabled(final boolean enabled) {
-		if (this.enabled == enabled) {
-			return;
-		}
-		this.enabled = enabled;
-		this.setChanged();
 	}
 
 	public double getCurrentAngle() {
@@ -114,9 +101,38 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 		this.setChanged();
 	}
 
+	public int getEnergyConsumption() {
+		return 1000;
+	}
+
+	@Override
+	public int getMaxHeatCapacity() {
+		return 24000;
+	}
+
+	@Override
+	public int getDangerousHeatLimit() {
+		return 20000;
+	}
+
+	@Override
+	public int getMaxEnergyStorage() {
+		return this.getEnergyConsumption();
+	}
+
+	@Override
+	public int getEnergyInputLimit() {
+		return this.getEnergyConsumption();
+	}
+
+	@Override
+	public int getEnergyOutputLimit() {
+		return 0;
+	}
+
 	@Override
 	public void load(final CompoundTag data) {
-		this.enabled = data.getBoolean("Enabled");
+		super.load(data);
 		if (data.contains("HeadPos")) {
 			final int[] headPosArr = data.getIntArray("HeadPos");
 			this.pendingHeadPos = new BlockPos(headPosArr[0], headPosArr[1], headPosArr[2]);
@@ -126,7 +142,7 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 
 	@Override
 	protected void saveShared(final CompoundTag data) {
-		data.putBoolean("Enabled", this.enabled);
+		super.saveShared(data);
 		final BlockPos headPos = this.headPos != null ? this.headPos : this.pendingHeadPos;
 		if (headPos != null) {
 			data.putIntArray("HeadPos", new int[]{headPos.getX(), headPos.getY(), headPos.getZ()});
@@ -279,22 +295,35 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 			}
 			return;
 		}
-		final double maxSpeed = this.getMaxRotateSpeed();
+		double maxSpeed = this.getMaxRotateSpeed();
+		if (this.isDangerous()) {
+			maxSpeed /= 2;
+		}
 		final double angle = this.readAngle();
 		final double targetAngle = this.getTargetAngle();
 		final boolean wasWorking = this.working;
 		this.angle = angle;
 
-		// TODO: consume energy
-		final boolean canWork = true;
+		boolean canWork = this.isEnabled();
+		if (canWork) {
+			final int newEnergy = this.getEnergyStorage() - this.getEnergyConsumption();
+			canWork = newEnergy >= 0;
+			if (canWork) {
+				this.setEnergyStorage(newEnergy);
+			}
+		}
 
-		if (this.enabled && canWork) {
+		if (canWork) {
 			double diff = normalizeAngle(targetAngle - angle);
 			if (Math.abs(diff) < 0.01) {
 				diff = 0;
 			}
 			if (diff != 0 || !wasWorking) {
-				if (Math.abs(diff) <= this.getMaxRotateSpeed()) {
+				if (wasWorking) {
+					final int heat = ((int) (Math.abs(normalizeAngle(this.workingAngle - angle)) / Math.PI * 100)) * 10;
+					this.transferHeat(heat);
+				}
+				if (Math.abs(diff) <= maxSpeed) {
 					this.workingAngle = targetAngle;
 				} else {
 					this.workingAngle = normalizeAngle(angle + (diff > 0 ? maxSpeed : -maxSpeed));
@@ -306,7 +335,6 @@ public class ServoBlockEntity extends BaseBlockEntity implements IAttachableBloc
 			world.updateConstraint(this.servoInfo.rotateConstraintId, this.createFreeRotationConstraint());
 			this.working = false;
 		}
-
 	}
 
 	private static final double PI2 = Math.PI * 2;

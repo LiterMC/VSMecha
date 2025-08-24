@@ -24,7 +24,7 @@ public final class EnergyNetwork {
 	private final ServerLevel level;
 	private final ServerShipWorldCore world;
 	private final Map<BlockPos, PrioBlockPos> lastPrioBPs = new HashMap<>();
-	private final NavigableSet<PrioBlockPos> energyBlocks = new TreeSet<>()
+	private final NavigableSet<PrioBlockPos> energyBlocks = new TreeSet<>();
 	private final Map<Long, Set<PrioBlockPos>> energyBlocksByShip = new HashMap<>();
 	private long tickAvailableEnergy = 0;
 	private long tickUsedEnergy = 0;
@@ -127,7 +127,7 @@ public final class EnergyNetwork {
 		long available = this.tickAvailableEnergy - this.tickUsedEnergy;
 		for (int i = ebes.size() - 1; i >= 0 && available > 0; i--) {
 			final IEnergyBlockEntity ebe = ebes.get(i);
-			int used = ebe.tickEnergyUse(available < Integer.MAX_VALUE ? ((int) (available)) : Integer.MAX_VALUE);
+			int used = ebe.tickEnergyInput(available < Integer.MAX_VALUE ? ((int) (available)) : Integer.MAX_VALUE);
 			available -= used;
 			this.tickUsedEnergy += used;
 			while (used > 0) {
