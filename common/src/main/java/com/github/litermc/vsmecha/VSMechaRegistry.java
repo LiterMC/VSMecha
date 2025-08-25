@@ -4,6 +4,9 @@
 
 package com.github.litermc.vsmecha;
 
+import com.github.litermc.vsmecha.block.control.CapsuleHeadBlock;
+import com.github.litermc.vsmecha.block.control.CapsuleSeatBlock;
+import com.github.litermc.vsmecha.block.control.CapsuleSeatBlockEntity;
 import com.github.litermc.vsmecha.block.energy.EnergyPortBlock;
 import com.github.litermc.vsmecha.block.energy.EnergyPortBlockEntity;
 import com.github.litermc.vsmecha.block.energy.PlasmaCapacitorBlock;
@@ -16,6 +19,7 @@ import com.github.litermc.vsmecha.block.joint.ServoHeadBlock;
 import com.github.litermc.vsmecha.block.joint.ServoHeadBlockEntity;
 import com.github.litermc.vsmecha.block.tool.StainedToolBlock;
 import com.github.litermc.vsmecha.block.tool.ToolBaseBlockEntity;
+import com.github.litermc.vsmecha.entity.SeatEntity;
 import com.github.litermc.vsmecha.platform.PlatformHelper;
 import com.github.litermc.vsmecha.platform.RegistrationHelper;
 import com.github.litermc.vsmecha.platform.RegistryEntry;
@@ -27,6 +31,10 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.DyeColor;
@@ -49,6 +57,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 public final class VSMechaRegistry {
 	private VSMechaRegistry() {}
@@ -68,11 +77,15 @@ public final class VSMechaRegistry {
 		Blocks.REGISTRY.register();
 		BlockEntities.REGISTRY.register();
 		Items.REGISTRY.register();
+		Entities.REGISTRY.register();
 		CreativeTabs.REGISTRY.register();
 	}
 
 	public static final class Blocks {
 		private static final RegistrationHelper<Block> REGISTRY = PlatformHelper.get().createRegistrationHelper(Registries.BLOCK);
+
+		public static final RegistryEntry<CapsuleSeatBlock> CAPSULE_SEAT = REGISTRY.register("capsule_seat", () -> new CapsuleSeatBlock(BlockBehaviour.Properties.of()));
+		public static final RegistryEntry<CapsuleHeadBlock> CAPSULE_HEAD = REGISTRY.register("capsule_head", () -> new CapsuleHeadBlock(BlockBehaviour.Properties.of()));
 
 		public static final RegistryEntry<EnergyPortBlock> ENERGY_PORT = REGISTRY.register("energy_port", () -> new EnergyPortBlock(BlockBehaviour.Properties.of()));
 		public static final RegistryEntry<PlasmaCapacitorBlock> PLASMA_CAPACITOR = REGISTRY.register("plasma_capacitor", () -> new PlasmaCapacitorBlock(BlockBehaviour.Properties.of()));
@@ -135,6 +148,8 @@ public final class VSMechaRegistry {
 				return PlatformHelper.get().createBlockEntityType(factory, blks);
 			});
 		}
+
+		public static final RegistryEntry<BlockEntityType<CapsuleSeatBlockEntity>> CAPSULE_SEAT = of("capsule_seat", CapsuleSeatBlockEntity::new, Blocks.CAPSULE_SEAT);
 
 		public static final RegistryEntry<BlockEntityType<EnergyPortBlockEntity>> ENERGY_PORT = of("energy_port", EnergyPortBlockEntity::new, Blocks.ENERGY_PORT);
 		public static final RegistryEntry<BlockEntityType<PlasmaCapacitorBlockEntity>> PLASMA_CAPACITOR = of("plasma_capacitor", PlasmaCapacitorBlockEntity::new, Blocks.PLASMA_CAPACITOR);
@@ -272,6 +287,24 @@ public final class VSMechaRegistry {
 		);
 
 		private Items() {}
+	}
+
+	public static final class Entities {
+		private static final RegistrationHelper<EntityType<?>> REGISTRY = PlatformHelper.get().createRegistrationHelper(Registries.ENTITY_TYPE);
+
+		private static <T extends Entity> RegistryEntry<EntityType<T>> of(final String name, final Supplier<EntityType.Builder<T>> supplier) {
+			return REGISTRY.register(name, () -> supplier.get().build(new ResourceLocation(Constants.MOD_ID, name).toString()));
+		}
+
+		public static final RegistryEntry<EntityType<SeatEntity>> SEAT = of(
+			"seat",
+			() -> EntityType.Builder.<SeatEntity>of(SeatEntity::new, MobCategory.MISC)
+				.sized(0, 0)
+				.clientTrackingRange(0)
+				.updateInterval(Integer.MAX_VALUE)
+		);
+
+		private Entities() {}
 	}
 
 	static class CreativeTabs {
