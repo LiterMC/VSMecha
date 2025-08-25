@@ -71,7 +71,7 @@ public class EnergyPortBlockEntity extends EnergyBasedBlockEntity {
 		if (ei == null) {
 			return 0;
 		}
-		final int pushed = ei.pushEnergy(Math.max(available, 10000), false);
+		final int pushed = ei.pushEnergy(Math.min(available, 10000), false);
 		this.transferred += pushed;
 		return pushed;
 	}

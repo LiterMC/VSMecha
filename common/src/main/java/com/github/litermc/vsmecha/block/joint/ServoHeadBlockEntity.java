@@ -2,6 +2,7 @@ package com.github.litermc.vsmecha.block.joint;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
 import com.github.litermc.vsmecha.block.BaseBlockEntity;
+import com.github.litermc.vsmecha.util.ShipUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -14,7 +15,7 @@ import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-public class ServoHeadBlockEntity extends BaseBlockEntity {
+public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlockEntity {
 	private final Direction direction;
 	BlockPos basePos = null;
 	ServoBlockEntity.ServoInfo servoInfo = null;
@@ -33,7 +34,27 @@ public class ServoHeadBlockEntity extends BaseBlockEntity {
 	}
 
 	@Override
+	public BlockPos getAttachingBlock() {
+		return this.basePos;
+	}
+
+	@Override
+	public ServerShip getPeerShip() {
+		if (this.basePos == null) {
+			return null;
+		}
+		return ShipUtil.getServerShip((ServerLevel) (this.getLevel()), this.basePos);
+	}
+
+	@Override
+	public boolean canTransferEnergy() {
+		return this.basePos != null && this.getLevel().getBlockEntity(this.basePos) instanceof ServoBlockEntity sbe && sbe.canTransferEnergy();
+	}
+
+	@Override
 	public void serverTick() {
+		super.serverTick();
+
 		if (this.basePos == null) {
 			return;
 		}

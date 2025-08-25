@@ -81,6 +81,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 
 	@Override
 	public boolean canTransferEnergy() {
+		System.out.println("servo enabled: " + this.isEnabled());
 		return this.isEnabled();
 	}
 
@@ -265,7 +266,10 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 
 	@Override
 	public boolean detach() {
-		this.pendingHeadPos = null;
+		if (this.pendingHeadPos != null) {
+			this.pendingHeadPos = null;
+			this.setChanged();
+		}
 		if (this.headPos == null) {
 			return false;
 		}
@@ -276,6 +280,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		this.servoInfo.detached = true;
 		this.servoInfo = null;
 		this.headPos = null;
+		this.setChanged();
 		return true;
 	}
 
@@ -294,6 +299,8 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 
 	@Override
 	public void serverTick() {
+		super.serverTick();
+
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos pos = this.getBlockPos();
 		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
@@ -301,6 +308,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 			if (this.servoInfo.detached) {
 				this.servoInfo = null;
 				this.headPos = null;
+				this.setChanged();
 			} else {
 				if (
 					!(level.getBlockEntity(this.headPos) instanceof ServoHeadBlockEntity) ||
@@ -314,6 +322,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 			if (this.pendingHeadPos != null) {
 				this.attachTo(this.pendingHeadPos);
 				this.pendingHeadPos = null;
+				this.setChanged();
 				return;
 			}
 			this.tryAttach();

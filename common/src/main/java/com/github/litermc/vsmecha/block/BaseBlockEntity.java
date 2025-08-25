@@ -1,12 +1,18 @@
 package com.github.litermc.vsmecha.block;
 
+import com.github.litermc.vsmecha.attachment.EnergyNetworkAttachment;
+import com.github.litermc.vsmecha.util.ShipUtil;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+
+import org.valkyrienskies.core.api.ships.ServerShip;
 
 public abstract class BaseBlockEntity extends BlockEntity {
 	protected BaseBlockEntity(final BlockEntityType<? extends BaseBlockEntity> type, final BlockPos pos, final BlockState state) {
@@ -43,7 +49,12 @@ public abstract class BaseBlockEntity extends BlockEntity {
 		level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 0 /* no use on server-side */);
 	}
 
-	public void serverTick() {}
+	public void serverTick() {
+		final ServerShip ship = ShipUtil.getServerShip((ServerLevel) (this.getLevel()), this.getBlockPos());
+		if (ship != null) {
+			EnergyNetworkAttachment.get(ship).addBlockEntity(this);
+		}
+	}
 
 	public void clientTick() {}
 }

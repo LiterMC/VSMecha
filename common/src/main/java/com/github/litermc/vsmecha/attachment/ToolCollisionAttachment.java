@@ -27,6 +27,7 @@ import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ChunkClaim;
+import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 import java.util.ArrayList;
@@ -125,5 +126,20 @@ public final class ToolCollisionAttachment {
 		impactedEntities.forEach((entity, data) -> {
 			entity.hurt(player.damageSources().playerAttack(player), (float) (data.velocity * perMass) * data.damageAmplifier * 0.5f);
 		});
+	}
+
+	public static void postLevelTick(final ServerLevel level) {
+		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
+		final String dimId = VSGameUtilsKt.getDimensionId(level);
+		for (final LoadedServerShip ship : world.getLoadedShips()) {
+			if (!ship.getChunkClaimDimension().equals(dimId)) {
+				continue;
+			}
+			final ToolCollisionAttachment attachment = ship.getAttachment(ToolCollisionAttachment.class);
+			if (attachment == null) {
+				continue;
+			}
+			attachment.tick(level, ship);
+		}
 	}
 }

@@ -1,16 +1,11 @@
 package com.github.litermc.vsmecha.block.energy;
 
-import com.github.litermc.vsmecha.attachment.EnergyNetworkAttachment;
 import com.github.litermc.vsmecha.block.BaseBlockEntity;
-import com.github.litermc.vsmecha.util.ShipUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-
-import org.valkyrienskies.core.api.ships.ServerShip;
 
 public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity implements IEnergyBlockEntity {
 	private volatile boolean enabled;
@@ -150,9 +145,9 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 	@Override
 	public void serverTick() {
 		super.serverTick();
-		final ServerShip ship = ShipUtil.getServerShip((ServerLevel) (this.getLevel()), this.getBlockPos());
-		if (ship != null) {
-			EnergyNetworkAttachment.get(ship).addBlockEntity(this);
+		if (this.empTicks > 0) {
+			this.empTicks--;
+			this.setChanged();
 		}
 	}
 }
