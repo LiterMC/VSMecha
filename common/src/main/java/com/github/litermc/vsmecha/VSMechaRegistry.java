@@ -4,8 +4,6 @@
 
 package com.github.litermc.vsmecha;
 
-import com.github.litermc.vsmecha.block.StainedToolBlock;
-import com.github.litermc.vsmecha.block.ToolBaseBlockEntity;
 import com.github.litermc.vsmecha.block.energy.EnergyPortBlock;
 import com.github.litermc.vsmecha.block.energy.EnergyPortBlockEntity;
 import com.github.litermc.vsmecha.block.energy.PlasmaCapacitorBlock;
@@ -16,6 +14,8 @@ import com.github.litermc.vsmecha.block.joint.ServoBlock;
 import com.github.litermc.vsmecha.block.joint.ServoBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ServoHeadBlock;
 import com.github.litermc.vsmecha.block.joint.ServoHeadBlockEntity;
+import com.github.litermc.vsmecha.block.tool.StainedToolBlock;
+import com.github.litermc.vsmecha.block.tool.ToolBaseBlockEntity;
 import com.github.litermc.vsmecha.platform.PlatformHelper;
 import com.github.litermc.vsmecha.platform.RegistrationHelper;
 import com.github.litermc.vsmecha.platform.RegistryEntry;

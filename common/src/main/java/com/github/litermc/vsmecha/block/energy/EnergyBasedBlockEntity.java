@@ -1,17 +1,20 @@
 package com.github.litermc.vsmecha.block.energy;
 
+import com.github.litermc.vsmecha.attachment.EnergyNetworkAttachment;
 import com.github.litermc.vsmecha.block.BaseBlockEntity;
-import com.github.litermc.vsmecha.enet.EnergyNetwork;
+import com.github.litermc.vsmecha.util.ShipUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
+import org.valkyrienskies.core.api.ships.ServerShip;
+
 public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity implements IEnergyBlockEntity {
-	private EnergyNetwork network = null;
 	private volatile boolean enabled;
-	private int priority;
+	private volatile int priority;
 	private int energy = 0;
 	private int empTicks = 0;
 
@@ -19,11 +22,6 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		super(type, pos, state);
 		this.enabled = this.getDefaultEnabled();
 		this.priority = this.getDefaultEnergyPriority();
-	}
-
-	@Override
-	public void onEnergyNetworkChanged(final EnergyNetwork network) {
-		this.network = network;
 	}
 
 	public boolean getDefaultEnabled() {
@@ -70,16 +68,13 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		}
 		this.priority = priority;
 		this.setChanged();
-		if (this.network != null) {
-			this.network.updatePriority(this.getBlockPos(), this);
-		}
 	}
 
-	public int getEnergyStorage() {
+	public int getEnergyStored() {
 		return this.energy;
 	}
 
-	protected void setEnergyStorage(final int energy) {
+	protected void setEnergyStored(final int energy) {
 		if (this.energy == energy) {
 			return;
 		}
@@ -150,5 +145,14 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		data.putInt("Priority", this.priority);
 		data.putInt("Energy", this.energy);
 		data.putInt("EMPTicks", this.empTicks);
+	}
+
+	@Override
+	public void serverTick() {
+		super.serverTick();
+		final ServerShip ship = ShipUtil.getServerShip((ServerLevel) (this.getLevel()), this.getBlockPos());
+		if (ship != null) {
+			EnergyNetworkAttachment.get(ship).addBlockEntity(this);
+		}
 	}
 }

@@ -1,4 +1,6 @@
-package com.github.litermc.vsmecha.block;
+package com.github.litermc.vsmecha.block.tool;
+
+import com.github.litermc.vsmecha.block.BaseBlock;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockBehaviour;

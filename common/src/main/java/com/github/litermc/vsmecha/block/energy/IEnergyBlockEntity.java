@@ -1,18 +1,8 @@
 package com.github.litermc.vsmecha.block.energy;
 
-import com.github.litermc.vsmecha.enet.EnergyNetwork;
-
 import java.util.function.IntUnaryOperator;
 
 public interface IEnergyBlockEntity {
-	/**
-	 * Invoke when energy network is changed.
-	 * This will never be invoked if the block is not placed on a ship.
-	 *
-	 * @param network new energy network, or {@code null} if no network is available
-	 */
-	void onEnergyNetworkChanged(EnergyNetwork network);
-
 	/**
 	 * Highest priority means energy will be provided first and drained last.
 	 * Lowest priority means energy will be provided last and drained first.
@@ -24,8 +14,6 @@ public interface IEnergyBlockEntity {
 
 	/**
 	 * Update the block's energy priority.
-	 * The block should inform {@link EnergyNetwork} its priority is changed via {@link EnergyNetwork#updatePriority}.
-	 * Priority should not be changed during network ticks, which also means it should not be changed concurrently.
 	 *
 	 * @param priority changed priority
 	 * @see getEnergyPriority

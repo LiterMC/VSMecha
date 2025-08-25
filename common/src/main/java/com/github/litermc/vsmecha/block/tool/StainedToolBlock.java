@@ -1,4 +1,4 @@
-package com.github.litermc.vsmecha.block;
+package com.github.litermc.vsmecha.block.tool;
 
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.state.BlockBehaviour;

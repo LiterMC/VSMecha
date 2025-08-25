@@ -1,6 +1,6 @@
 package com.github.litermc.vsmecha.shape;
 
-import com.github.litermc.vsmecha.block.ToolBaseBlock;
+import com.github.litermc.vsmecha.block.tool.ToolBaseBlock;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;

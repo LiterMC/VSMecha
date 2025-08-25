@@ -56,20 +56,20 @@ public class PlasmaCapacitorBlockEntity extends EnergyBasedBlockEntity {
 	public void serverTick() {
 		super.serverTick();
 
-		final int energy = this.getEnergyStorage();
+		final int energy = this.getEnergyStored();
 		if (energy <= 0) {
 			return;
 		}
 
 		if (!this.isEnabled()) {
-			this.setEnergyStorage(0);
+			this.setEnergyStored(0);
 			this.transferHeat(energy / 16);
 			return;
 		}
 
 		final int newEnergy = (int) (energy * EFFICIENCY);
 		final int heat = (energy - newEnergy) / 16;
-		this.setEnergyStorage(newEnergy);
+		this.setEnergyStored(newEnergy);
 		this.transferHeat(heat);
 	}
 }

@@ -145,11 +145,11 @@ public class ThermalEnergyCoreBlockEntity extends EnergyBasedBlockEntity impleme
 
 		final int maxEnergy = this.getMaxEnergyStorage();
 		final int maxProd = maxEnergy / 2;
-		final int energy = this.getEnergyStorage();
+		final int energy = this.getEnergyStored();
 		final int cap = maxEnergy - energy;
 		if (cap > 0) {
 			final int generated = this.tryGenerateEnergy(Math.min(cap, maxProd));
-			this.setEnergyStorage(energy + Math.min(generated, cap));
+			this.setEnergyStored(energy + Math.min(generated, cap));
 		}
 	}
 

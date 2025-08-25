@@ -12,7 +12,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 public class EnergyPortBlockEntity extends EnergyBasedBlockEntity {
-	private final Direction direction; 
+	private final Direction direction;
 	private int transferred = 0;
 
 	public EnergyPortBlockEntity(final BlockEntityType<? extends EnergyPortBlockEntity> type, final BlockPos pos, final BlockState state) {

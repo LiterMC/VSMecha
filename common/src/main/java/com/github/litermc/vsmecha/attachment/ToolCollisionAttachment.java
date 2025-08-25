@@ -1,6 +1,6 @@
 package com.github.litermc.vsmecha.attachment;
 
-import com.github.litermc.vsmecha.block.ToolBaseBlock;
+import com.github.litermc.vsmecha.block.tool.ToolBaseBlock;
 import com.github.litermc.vsmecha.platform.PlatformHelper;
 import com.github.litermc.vsmecha.util.DestroyUtil;
 import com.github.litermc.vsmecha.util.IFakePlayer;
@@ -49,15 +49,15 @@ public final class ToolCollisionAttachment {
 	private static final double COLLISION_EXTEND = 4.0 / 16;
 	private final Set<BlockPos> toolBlocks = new HashSet<>();
 
-	public ToolCollisionAttachment() {
-	}
+	public ToolCollisionAttachment() {}
 
 	public static ToolCollisionAttachment get(final ServerShip ship) {
-		ToolCollisionAttachment attachment = ship.getAttachment(ToolCollisionAttachment.class);
-		if (attachment == null) {
-			attachment = new ToolCollisionAttachment();
-			ship.saveAttachment(ToolCollisionAttachment.class, attachment);
+		final ToolCollisionAttachment attachment = ship.getAttachment(ToolCollisionAttachment.class);
+		if (attachment != null) {
+			return attachment;
 		}
+		final ToolCollisionAttachment newAttachment = new ToolCollisionAttachment();
+		ship.saveAttachment(ToolCollisionAttachment.class, newAttachment);
 		return attachment;
 	}
 

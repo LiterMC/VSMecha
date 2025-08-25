@@ -36,6 +36,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	private BlockPos headPos = null;
 	BlockPos pendingHeadPos = null;
 	ServoInfo servoInfo = null;
+	private volatile boolean autoAttach = true;
 	private volatile boolean working = false;
 	private volatile double angle = 0;
 	private volatile double workingAngle = 0;
@@ -71,9 +72,24 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	}
 
 	@Override
-	public long getPeerShipId() {
-		final ServerShip other = ShipUtil.getServerShip((ServerLevel) (this.getLevel()), this.headPos);
-		return other.getId();
+	public ServerShip getPeerShip() {
+		if (this.headPos == null) {
+			return null;
+		}
+		return ShipUtil.getServerShip((ServerLevel) (this.getLevel()), this.headPos);
+	}
+
+	@Override
+	public boolean canTransferEnergy() {
+		return this.isEnabled();
+	}
+
+	public boolean getAutoAttach() {
+		return this.autoAttach;
+	}
+
+	public void setAutoAttach(final boolean autoAttach) {
+		this.autoAttach = autoAttach;
 	}
 
 	public boolean isWorking() {
@@ -264,6 +280,19 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	}
 
 	@Override
+	public boolean tryAttach() {
+		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final BlockPos pos = this.getBlockPos();
+		final Vector3d attachPos = VSGameUtilsKt.toWorldCoordinates(level, new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5));
+		for (final Vector3d p : VSGameUtilsKt.transformToNearbyShipsAndWorld(level, attachPos.x, attachPos.y, attachPos.z, 1)) {
+			if (this.attachTo(BlockPos.containing(p.x, p.y, p.z))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Override
 	public void serverTick() {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos pos = this.getBlockPos();
@@ -287,12 +316,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 				this.pendingHeadPos = null;
 				return;
 			}
-			final Vector3d attachPos = VSGameUtilsKt.toWorldCoordinates(level, new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5));
-			for (final Vector3d p : VSGameUtilsKt.transformToNearbyShipsAndWorld(level, attachPos.x, attachPos.y, attachPos.z, 1)) {
-				if (this.attachTo(BlockPos.containing(p.x, p.y, p.z))) {
-					break;
-				}
-			}
+			this.tryAttach();
 			return;
 		}
 		double maxSpeed = this.getMaxRotateSpeed();
@@ -306,10 +330,10 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 
 		boolean canWork = this.isEnabled();
 		if (canWork) {
-			final int newEnergy = this.getEnergyStorage() - this.getEnergyConsumption();
+			final int newEnergy = this.getEnergyStored() - this.getEnergyConsumption();
 			canWork = newEnergy >= 0;
 			if (canWork) {
-				this.setEnergyStorage(newEnergy);
+				this.setEnergyStored(newEnergy);
 			}
 		}
 

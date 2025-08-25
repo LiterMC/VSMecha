@@ -2,6 +2,8 @@ package com.github.litermc.vsmecha.block.joint;
 
 import net.minecraft.core.BlockPos;
 
+import org.valkyrienskies.core.api.ships.ServerShip;
+
 public interface IAttachableBlockEntity {
 	default boolean isAttached() {
 		return this.getAttachingBlock() != null;
@@ -10,14 +12,15 @@ public interface IAttachableBlockEntity {
 	BlockPos getAttachingBlock();
 
 	/**
-	 * This method does not need return if the block is not attached
-	 *
-	 * @throws RuntimeException if peer ship does not present
-	 * @return peer ship's ID
+	 * @return Peer ship, or {@code null} if peer ship does not present
 	 */
-	long getPeerShipId();
+	ServerShip getPeerShip();
+
+	boolean canTransferEnergy();
 
 	boolean attachTo(BlockPos otherPos);
 
 	boolean detach();
+
+	boolean tryAttach();
 }

@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -60,6 +61,14 @@ public abstract class ThermalBasedBlockEntity extends BaseBlockEntity implements
 		return this.getHeat() > this.getDangerousHeatLimit();
 	}
 
+	public void onMelt() {
+		this.getLevel().setBlock(this.getBlockPos(), Blocks.LAVA.defaultBlockState().setValue(LiquidBlock.LEVEL, 1), Block.UPDATE_ALL);
+	}
+
+	public void onTickDangerous(final RandomSource rnd) {
+		// TODO: burn surroundings
+	}
+
 	@Override
 	public void load(final CompoundTag data) {
 		super.load(data);
@@ -111,7 +120,7 @@ public abstract class ThermalBasedBlockEntity extends BaseBlockEntity implements
 		}
 
 		if (this.heat >= this.getMaxHeatCapacity()) {
-			level.setBlock(pos, Blocks.LAVA.defaultBlockState().setValue(LiquidBlock.LEVEL, 1), Block.UPDATE_ALL);
+			this.onMelt();
 		}
 	}
 }
