@@ -31,7 +31,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	private static final Vector3dc ZERO_VEC3 = new Vector3d();
 	private static final Quaterniondc FREEROT_QUAT = new Quaterniond(new AxisAngle4d(Math.PI / 2, 0, 0, 1));
 	private static final double ATTACH_COMPLIANCE = 0;
-	private static final double ROTATE_COMPLIANCE = 0;
+	private static final double ROTATE_COMPLIANCE = 1e-11;
 
 	private final Direction direction;
 	private BlockPos headPos = null;
@@ -56,7 +56,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	 * @return max rotation speed in rad/t
 	 */
 	public double getMaxRotateSpeed() {
-		return 3 * Math.PI / 180;
+		return 10 * Math.PI / 180;
 	}
 
 	public Direction getDirection() {
@@ -150,7 +150,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 			final int[] headPosArr = data.getIntArray("HeadPos");
 			this.pendingHeadPos = new BlockPos(headPosArr[0], headPosArr[1], headPosArr[2]);
 		}
-		this.targetAngle = data.getDouble("TargetAngle");
+		this.targetAngle = normalizeAngle(data.getDouble("TargetAngle"));
 	}
 
 	@Override
@@ -171,11 +171,10 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		final Direction dir = this.getDirection();
 		final Vector3dc dirVec = new Vector3d(dir.getStepX(), dir.getStepY(), dir.getStepZ());
 		final Quaterniond relRot = ShipUtil.getShipRelativeRotation(ship, other)
-			.mul(new Quaterniond(dir.getRotation()).invert().mul(new Quaterniond(head.getDirection().getOpposite().getRotation())));
+			.mul(new Quaterniond(dir.getRotation()).invert().mul(new Quaterniond(head.getDirection().getOpposite().getRotation())))
+			.normalize();
 		final double dot = dirVec.dot(relRot.x, relRot.y, relRot.z);
-		final Vector3d projected = dirVec.mul(dot, new Vector3d());
-		final Quaterniond projRot = new Quaterniond(projected.x, projected.y, projected.z, relRot.w).normalize();
-		return -normalizeAngle(2 * Math.acos(projRot.w) * Math.signum(dot));
+		return normalizeAngle(-2 * Math.atan2(dot, relRot.w));
 	}
 
 	@Override
@@ -355,7 +354,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 					: normalizeAngle(angle + (diff > 0 ? maxSpeed : -maxSpeed));
 				if (wasWorking) {
 					final double lastWorkingAngle = this.workingAngle;
-					newWorkingAngle = (newWorkingAngle + lastWorkingAngle) / 2;
+					newWorkingAngle = lerpAngle(newWorkingAngle, lastWorkingAngle, 0.5);
 					final int heat = ((int) (Math.abs(normalizeAngle(lastWorkingAngle - angle)) / Math.PI * 100)) * 10;
 					this.transferHeat(heat);
 				}
@@ -377,6 +376,10 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	private static final double normalizeAngle(double angle) {
 		angle = (angle % PI2 + PI2) % PI2;
 		return angle > Math.PI ? angle - PI2 : angle;
+	}
+
+	private static final double lerpAngle(final double a, final double b, final double alpha) {
+		return normalizeAngle(a + normalizeAngle(b - a) * alpha);
 	}
 
 	static final class ServoInfo {
