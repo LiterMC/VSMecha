@@ -100,7 +100,8 @@ public final class EnergyNetworkAttachment {
 				}
 				final EnergyNetworkAttachment otherNetwork = EnergyNetworkAttachment.get(otherShip);
 				if (otherNetwork.ticking) {
-					throw new IllegalStateException("VSMecha connected energy network unexpectly ticked");
+					// May happen when server just started
+					return;
 				}
 				otherNetwork.ticking = true;
 				networks.add(otherNetwork);
