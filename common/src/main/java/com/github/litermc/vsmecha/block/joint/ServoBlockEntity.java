@@ -23,14 +23,15 @@ import org.valkyrienskies.core.apigame.constraints.VSAttachmentConstraint;
 import org.valkyrienskies.core.apigame.constraints.VSConstraint;
 import org.valkyrienskies.core.apigame.constraints.VSFixedOrientationConstraint;
 import org.valkyrienskies.core.apigame.constraints.VSHingeOrientationConstraint;
+import org.valkyrienskies.core.apigame.constraints.VSHingeTargetAngleConstraint;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttachableBlockEntity {
 	private static final Vector3dc ZERO_VEC3 = new Vector3d();
 	private static final Quaterniondc FREEROT_QUAT = new Quaterniond(new AxisAngle4d(Math.PI / 2, 0, 0, 1));
-	private static final double ATTACH_COMPLIANCE = 1e-10;
-	private static final double ROTATE_COMPLIANCE = 1e-10;
+	private static final double ATTACH_COMPLIANCE = 0;
+	private static final double ROTATE_COMPLIANCE = 0;
 
 	private final Direction direction;
 	private BlockPos headPos = null;
@@ -51,15 +52,11 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		this(VSMechaRegistry.BlockEntities.SERVO.get(), pos, state);
 	}
 
-	public double getMaxForce() {
-		return 1e10;
-	}
-
 	/**
 	 * @return max rotation speed in rad/t
 	 */
 	public double getMaxRotateSpeed() {
-		return 10 * Math.PI / 180;
+		return 3 * Math.PI / 180;
 	}
 
 	public Direction getDirection() {
@@ -213,19 +210,20 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		this.angle = angle;
 		this.workingAngle = angle;
 
-		final VSAttachmentConstraint attachConstraint = new VSAttachmentConstraint(
+		final VSAttachmentConstraint attachConstraint1 = new VSAttachmentConstraint(
 			selfId,
 			otherId,
 			ATTACH_COMPLIANCE,
 			new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5),
 			new Vector3d(otherPos.getX() + 0.5, otherPos.getY() + 0.5, otherPos.getZ() + 0.5),
-			Double.MAX_VALUE,
+			Double.POSITIVE_INFINITY,
 			0
 		);
 		final VSConstraint attachConstraint2 = this.createFreeRotationConstraint();
 		final VSConstraint rotateConstraint = this.createRotationConstraint();
 		this.servoInfo = new ServoInfo();
-		this.servoInfo.attachConstraintId = world.createNewConstraint(attachConstraint);
+		this.servoInfo.attachConstraint1Id = world.createNewConstraint(attachConstraint1);
+		this.servoInfo.attachConstraint2Id = world.createNewConstraint(attachConstraint2);
 		this.servoInfo.rotateConstraintId = world.createNewConstraint(rotateConstraint);
 
 		head.basePos = pos;
@@ -247,22 +245,22 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 			ROTATE_COMPLIANCE,
 			dir,
 			rotation,
-			this.getMaxForce()
+			Double.POSITIVE_INFINITY
 		);
 	}
 
 	protected VSConstraint createFreeRotationConstraint() {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final ServoHeadBlockEntity head = (ServoHeadBlockEntity) (level.getBlockEntity(this.headPos));
-		final Quaterniondc baseRot = new Quaterniond(new Quaterniond(this.getDirection().getRotation())).mul(FREEROT_QUAT);
+		final Quaterniondc baseRot = new Quaterniond(this.getDirection().getRotation()).mul(FREEROT_QUAT);
 		final Quaterniond otherRot = new Quaterniond(head.getDirection().getOpposite().getRotation()).mul(FREEROT_QUAT);
 		return new VSHingeOrientationConstraint(
 			ShipUtil.getShipOrDimId(level, this.getBlockPos()),
 			ShipUtil.getShipOrDimId(level, this.headPos),
-			ROTATE_COMPLIANCE,
+			ATTACH_COMPLIANCE,
 			baseRot,
 			otherRot,
-			Double.MAX_VALUE
+			Double.POSITIVE_INFINITY
 		);
 	}
 
@@ -277,9 +275,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		}
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
-		world.removeConstraint(this.servoInfo.attachConstraintId);
-		world.removeConstraint(this.servoInfo.rotateConstraintId);
-		this.servoInfo.detached = true;
+		this.servoInfo.detach(world);
 		this.servoInfo = null;
 		this.headPos = null;
 		this.setChanged();
@@ -359,6 +355,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 					: normalizeAngle(angle + (diff > 0 ? maxSpeed : -maxSpeed));
 				if (wasWorking) {
 					final double lastWorkingAngle = this.workingAngle;
+					newWorkingAngle = (newWorkingAngle + lastWorkingAngle) / 2;
 					final int heat = ((int) (Math.abs(normalizeAngle(lastWorkingAngle - angle)) / Math.PI * 100)) * 10;
 					this.transferHeat(heat);
 				}
@@ -384,7 +381,14 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 
 	static final class ServoInfo {
 		boolean detached = false;
-		int attachConstraintId;
+		int attachConstraint1Id, attachConstraint2Id;
 		int rotateConstraintId;
+
+		void detach(final ServerShipWorldCore world) {
+			world.removeConstraint(this.attachConstraint1Id);
+			world.removeConstraint(this.attachConstraint2Id);
+			world.removeConstraint(this.rotateConstraintId);
+			this.detached = true;
+		}
 	}
 }

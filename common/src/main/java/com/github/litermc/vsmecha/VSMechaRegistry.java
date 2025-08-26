@@ -92,7 +92,7 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<ThermalEnergyCoreBlock> THERMAL_ENERGY_CORE = REGISTRY.register("thermal_energy_core", () -> new ThermalEnergyCoreBlock(BlockBehaviour.Properties.of()));
 
 		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(BlockBehaviour.Properties.of()));
-		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(BlockBehaviour.Properties.of()));
+		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(BlockBehaviour.Properties.of().noCollission()));
 
 		public static final RegistryEntry<StainedToolBlock> WHITE_TOOL_BLOCK =
 			REGISTRY.register("white_tool_block", () -> new StainedToolBlock(DyeColor.WHITE, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.WHITE_CONCRETE)));

@@ -47,7 +47,7 @@ import java.util.stream.LongStream;
 	setterVisibility = JsonAutoDetect.Visibility.NONE
 )
 public final class ToolCollisionAttachment {
-	private static final double COLLISION_EXTEND = 4.0 / 16;
+	private static final double COLLISION_DETECT = 4.0 / 16;
 	private final Set<BlockPos> toolBlocks = new HashSet<>();
 
 	public ToolCollisionAttachment() {}
@@ -104,8 +104,8 @@ public final class ToolCollisionAttachment {
 				continue;
 			}
 			final AABBd detectBox = new AABBd(
-				pos.getX() - COLLISION_EXTEND, pos.getY() - COLLISION_EXTEND, pos.getZ() - COLLISION_EXTEND,
-				pos.getX() + 1 + COLLISION_EXTEND, pos.getY() + 1 + COLLISION_EXTEND, pos.getZ() + 1 + COLLISION_EXTEND
+				pos.getX() - COLLISION_DETECT, pos.getY() - COLLISION_DETECT, pos.getZ() - COLLISION_DETECT,
+				pos.getX() + 1 + COLLISION_DETECT, pos.getY() + 1 + COLLISION_DETECT, pos.getZ() + 1 + COLLISION_DETECT
 			);
 			final AABBd worldDetectBox = detectBox.transform(mat, new AABBd());
 

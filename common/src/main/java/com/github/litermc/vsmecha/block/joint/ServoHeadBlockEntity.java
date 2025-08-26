@@ -69,8 +69,7 @@ public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlock
 		if (level.getBlockEntity(this.basePos) instanceof ServoBlockEntity sbe && sbe.servoInfo == this.servoInfo) {
 			return;
 		}
-		world.removeConstraint(this.servoInfo.attachConstraintId);
-		world.removeConstraint(this.servoInfo.rotateConstraintId);
+		this.servoInfo.detach(world);
 		this.servoInfo.detached = true;
 		this.servoInfo = null;
 		this.basePos = null;
