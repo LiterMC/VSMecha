@@ -92,6 +92,17 @@ public final class PredictUtil {
 			}
 		}
 
+		public Vector3d getSpeedAt(final BlockPos pos, final Vector3d dest) {
+			return this.getSpeedAt(dest.set(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5), dest);
+		}
+
+		public Vector3d getSpeedAt(final Vector3dc pos, final Vector3d dest) {
+			final Vector3d tmp1 = new Vector3d(), tmp2 = new Vector3d();
+			this.predictMats[0].transformPosition(pos, tmp1);
+			this.predictMats[1].transformPosition(pos, tmp2);
+			return tmp2.sub(tmp1, dest);
+		}
+
 		public void getImpacting(
 			final ServerLevel level,
 			final Ship opShip,
@@ -105,6 +116,7 @@ public final class PredictUtil {
 				toolBlockCheckPos = new Vector3d(),
 				prevPos = new Vector3d(),
 				currPos = new Vector3d(),
+				velocity = new Vector3d(),
 				tmp = new Vector3d();
 
 			final List<IToolShape> shapes = new ArrayList<>();
@@ -131,9 +143,11 @@ public final class PredictUtil {
 				for (int i = 1; i <= PREDICT_STEPS; i++) {
 					prevPos.set(currPos);
 					this.predictMats[i].transformPosition(toolBlockCheckPos, currPos);
-					final double dist = prevPos.distance(currPos);
+					currPos.sub(prevPos, velocity);
+					final double dist = velocity.length();
 					totalDist += dist;
-					final double vel = dist / Math.max(i - PREDICT_SPT / 2, 1);
+					final double velScale = 1.0 / Math.max(i - PREDICT_SPT / 2, 1);
+					final double vel0 = dist * velScale;
 
 					for (final Ship ship : ships) {
 						tmp.set(prevPos);
@@ -150,6 +164,17 @@ public final class PredictUtil {
 							final BlockImpactData data = posMap.computeIfAbsent(pos.immutable(), (pos1) -> new BlockImpactData(level.getBlockState(pos1)));
 							if (data.state.isAir()) {
 								return null;
+							}
+							final double vel;
+							if (ship == null) {
+								vel = vel0;
+							} else {
+								PredictUtil.predict(ship).getSpeedAt(pos, tmp);
+								velocity.sub(tmp, tmp);
+								if (velocity.dot(tmp) <= 0) {
+									return null;
+								}
+								vel = velScale * tmp.length();
 							}
 							if (data.velocity < vel) {
 								data.velocity = vel;
@@ -176,8 +201,8 @@ public final class PredictUtil {
 							}
 							final float damageAmplifier = (float) (shapes.stream().mapToDouble((s) -> s.damageAmplifier(entity)).max().orElse(1));
 							final EntityImpactData data = impactedEntities.computeIfAbsent(entity, (entity1) -> new EntityImpactData(damageAmplifier));
-							if (data.velocity < vel) {
-								data.velocity = vel;
+							if (data.velocity < vel0) {
+								data.velocity = vel0;
 							}
 							if (data.damageAmplifier < damageAmplifier) {
 								data.damageAmplifier = damageAmplifier;

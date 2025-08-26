@@ -59,7 +59,7 @@ public final class ToolCollisionAttachment {
 		}
 		final ToolCollisionAttachment newAttachment = new ToolCollisionAttachment();
 		ship.saveAttachment(ToolCollisionAttachment.class, newAttachment);
-		return attachment;
+		return newAttachment;
 	}
 
 	@JsonGetter("toolBlocks")
