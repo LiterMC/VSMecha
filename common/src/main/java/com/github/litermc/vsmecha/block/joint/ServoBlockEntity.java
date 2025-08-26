@@ -81,7 +81,6 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 
 	@Override
 	public boolean canTransferEnergy() {
-		System.out.println("servo enabled: " + this.isEnabled());
 		return this.isEnabled();
 	}
 
@@ -139,7 +138,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 
 	@Override
 	public int getEnergyInputLimit() {
-		return this.getEnergyConsumption();
+		return this.getEnergyConsumption() * 2;
 	}
 
 	@Override
@@ -210,22 +209,25 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 
 		this.headPos = otherPos;
 
+		final double angle = this.readAngle();
+		this.angle = angle;
+		this.workingAngle = angle;
+
 		final VSAttachmentConstraint attachConstraint = new VSAttachmentConstraint(
 			selfId,
 			otherId,
 			ATTACH_COMPLIANCE,
 			new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5),
 			new Vector3d(otherPos.getX() + 0.5, otherPos.getY() + 0.5, otherPos.getZ() + 0.5),
-			this.getMaxForce(),
+			Double.MAX_VALUE,
 			0
 		);
-		final double angle = this.readAngle();
-		this.angle = angle;
-		this.workingAngle = angle;
+		final VSConstraint attachConstraint2 = this.createFreeRotationConstraint();
 		final VSConstraint rotateConstraint = this.createRotationConstraint();
 		this.servoInfo = new ServoInfo();
 		this.servoInfo.attachConstraintId = world.createNewConstraint(attachConstraint);
 		this.servoInfo.rotateConstraintId = world.createNewConstraint(rotateConstraint);
+
 		head.basePos = pos;
 		head.servoInfo = this.servoInfo;
 		this.working = true;
@@ -260,7 +262,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 			ROTATE_COMPLIANCE,
 			baseRot,
 			otherRot,
-			this.getMaxForce()
+			Double.MAX_VALUE
 		);
 	}
 
@@ -352,15 +354,15 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 				diff = 0;
 			}
 			if (diff != 0 || !wasWorking) {
+				double newWorkingAngle = Math.abs(diff) <= maxSpeed
+					? targetAngle
+					: normalizeAngle(angle + (diff > 0 ? maxSpeed : -maxSpeed));
 				if (wasWorking) {
-					final int heat = ((int) (Math.abs(normalizeAngle(this.workingAngle - angle)) / Math.PI * 100)) * 10;
+					final double lastWorkingAngle = this.workingAngle;
+					final int heat = ((int) (Math.abs(normalizeAngle(lastWorkingAngle - angle)) / Math.PI * 100)) * 10;
 					this.transferHeat(heat);
 				}
-				if (Math.abs(diff) <= maxSpeed) {
-					this.workingAngle = targetAngle;
-				} else {
-					this.workingAngle = normalizeAngle(angle + (diff > 0 ? maxSpeed : -maxSpeed));
-				}
+				this.workingAngle = newWorkingAngle;
 				world.updateConstraint(this.servoInfo.rotateConstraintId, this.createRotationConstraint());
 				this.working = true;
 			}

@@ -140,7 +140,6 @@ public final class EnergyNetworkAttachment {
 			final Iterator<PrioEnergyRecord> consumerIter = sortedEnergyBlocks.descendingIterator();
 			while (available > 0 && consumerIter.hasNext()) {
 				final IEnergyBlockEntity ebe = consumerIter.next().be;
-				System.out.println("consumer: " + ebe + " available: " + available);
 				final int used = ebe.tickEnergyInput(available < Integer.MAX_VALUE ? ((int) (available)) : Integer.MAX_VALUE);
 				available -= used;
 				tickUsedEnergy += used;

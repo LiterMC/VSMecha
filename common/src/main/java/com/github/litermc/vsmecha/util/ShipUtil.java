@@ -67,6 +67,6 @@ public final class ShipUtil {
 	public static Quaterniond getShipRelativeRotation(final ServerShip ship, final ServerShip other) {
 		final Quaterniond baseRot = ship == null ? new Quaterniond() : new Quaterniond(ship.getTransform().getShipToWorldRotation());
 		final Quaterniondc otherRot = other == null ? ZERO_QUAT : other.getTransform().getShipToWorldRotation();
-		return otherRot.mul(baseRot.invert(), baseRot);
+		return baseRot.invert().mul(otherRot);
 	}
 }
