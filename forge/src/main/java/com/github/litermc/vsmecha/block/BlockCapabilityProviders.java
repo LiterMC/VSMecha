@@ -1,5 +1,8 @@
 package com.github.litermc.vsmecha.block;
 
+import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
+import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntityCapabilityProvider;
+
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
@@ -9,10 +12,10 @@ public final class BlockCapabilityProviders {
 
 	public static void register() {
 		MinecraftForge.EVENT_BUS.addGenericListener(BlockEntity.class, (AttachCapabilitiesEvent<? extends BlockEntity> event) -> {
-			// if (event.getObject() instanceof ChunkLoaderBlockEntity) {
-			// 	ChunkLoaderBlockEntityCapabilityProvider.onGatherCapabilities((AttachCapabilitiesEvent<ChunkLoaderBlockEntity>) (event));
-			// 	return;
-			// }
+			if (event.getObject() instanceof EnergyBasedBlockEntity) {
+				EnergyBasedBlockEntityCapabilityProvider.onGatherCapabilities((AttachCapabilitiesEvent<EnergyBasedBlockEntity>) (event));
+				return;
+			}
 		});
 	}
 }

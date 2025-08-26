@@ -133,12 +133,12 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 
 	@Override
 	public int getMaxEnergyStorage() {
-		return this.getEnergyConsumption();
+		return this.getEnergyConsumption() * 2;
 	}
 
 	@Override
 	public int getEnergyInputLimit() {
-		return this.getEnergyConsumption() * 2;
+		return this.getMaxEnergyStorage();
 	}
 
 	@Override

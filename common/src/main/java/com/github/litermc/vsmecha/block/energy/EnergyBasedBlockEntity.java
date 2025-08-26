@@ -7,11 +7,16 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
+
 public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity implements IEnergyBlockEntity {
 	private volatile boolean enabled;
 	private volatile int priority;
 	private int energy = 0;
 	private int empTicks = 0;
+
+	int energyOutputRemaining = 0;
+	int energyInputRemaining = 0;
 
 	protected EnergyBasedBlockEntity(final BlockEntityType<? extends EnergyBasedBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -92,12 +97,26 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 	 */
 	public abstract int getEnergyOutputLimit();
 
+	protected boolean isOnShip() {
+		return VSGameUtilsKt.isBlockInShipyard(this.getLevel(), this.getBlockPos());
+	}
+
+	public boolean canPullByExternal() {
+		return false;
+	}
+
+	public boolean canPushByExternal() {
+		return !this.isOnShip();
+	}
+
 	@Override
 	public int tickEnergySource() {
 		if (!this.isEnabled()) {
 			return 0;
 		}
-		return Math.min(this.getEnergyOutputLimit(), this.energy);
+		final int limit = this.getEnergyOutputLimit();
+		this.energyOutputRemaining = limit;
+		return Math.min(limit, this.energy);
 	}
 
 	@Override
@@ -116,6 +135,7 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 			return 0;
 		}
 		final int consumed = Math.min(this.getMaxEnergyStorage() - this.energy, Math.min(limit, available));
+		this.energyInputRemaining = limit - consumed;
 		if (consumed == 0) {
 			return 0;
 		}

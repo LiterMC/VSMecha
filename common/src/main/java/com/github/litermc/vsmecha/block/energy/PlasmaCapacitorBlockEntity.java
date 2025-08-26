@@ -53,6 +53,11 @@ public class PlasmaCapacitorBlockEntity extends EnergyBasedBlockEntity {
 	}
 
 	@Override
+	public boolean canPullByExternal() {
+		return !this.isOnShip();
+	}
+
+	@Override
 	public void serverTick() {
 		super.serverTick();
 

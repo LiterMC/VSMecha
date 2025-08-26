@@ -65,6 +65,7 @@ public class EnergyPortBlockEntity extends EnergyBasedBlockEntity {
 		if (!this.isEnabled()) {
 			return 0;
 		}
+		this.energyInputRemaining = this.getMaxEnergyStorage();
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos outPos = this.getBlockPos().relative(this.direction);
 		final EnergyInterface ei = PlatformHelper.get().getEnergyInterface(level, outPos, this.direction.getOpposite());
@@ -74,6 +75,11 @@ public class EnergyPortBlockEntity extends EnergyBasedBlockEntity {
 		final int pushed = ei.pushEnergy(Math.min(available, 10000), false);
 		this.transferred += pushed;
 		return pushed;
+	}
+
+	@Override
+	public boolean canPushByExternal() {
+		return true;
 	}
 
 	@Override

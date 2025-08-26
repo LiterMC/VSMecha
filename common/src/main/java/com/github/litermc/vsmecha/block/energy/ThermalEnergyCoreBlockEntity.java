@@ -136,6 +136,16 @@ public class ThermalEnergyCoreBlockEntity extends EnergyBasedBlockEntity impleme
 	}
 
 	@Override
+	public boolean canPullByExternal() {
+		return !this.isOnShip();
+	}
+
+	@Override
+	public boolean canPushByExternal() {
+		return false;
+	}
+
+	@Override
 	public void serverTick() {
 		super.serverTick();
 
