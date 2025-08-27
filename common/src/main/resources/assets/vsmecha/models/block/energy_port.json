@@ -1,0 +1,9 @@
+{
+	"parent": "minecraft:block/cube_bottom_top",
+	"textures": {
+		"bottom": "vsmecha:block/energy_port_back",
+		"particle": "vsmecha:block/energy_port_side",
+		"side": "vsmecha:block/energy_port_side",
+		"top": "vsmecha:block/energy_port_front"
+	}
+}

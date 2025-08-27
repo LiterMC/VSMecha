@@ -3,6 +3,7 @@
 	"block.vsmecha.blue_tool_block": "Blue Tool Block",
 	"block.vsmecha.brown_tool_block": "Brown Tool Block",
 	"block.vsmecha.cyan_tool_block": "Cyan Tool Block",
+	"block.vsmecha.energy_port": "Energy Port",
 	"block.vsmecha.gray_tool_block": "Gray Tool Block",
 	"block.vsmecha.green_tool_block": "Green Tool Block",
 	"block.vsmecha.light_blue_tool_block": "Light Blue Tool Block",
@@ -14,6 +15,7 @@
 	"block.vsmecha.purple_tool_block": "Purple Tool Block",
 	"block.vsmecha.red_tool_block": "Red Tool Block",
 	"block.vsmecha.servo": "Servo",
+	"block.vsmecha.servo_head": "Servo Head",
 	"block.vsmecha.white_tool_block": "White Tool Block",
 	"block.vsmecha.yellow_tool_block": "Yellow Tool Block",
 	"itemGroup.vsmecha": "VS Mecha"
