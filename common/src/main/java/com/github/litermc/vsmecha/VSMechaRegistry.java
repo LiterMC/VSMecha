@@ -28,6 +28,7 @@ import com.github.litermc.vsmecha.shape.PickAxeShape;
 import com.github.litermc.vsmecha.shape.SwordShape;
 
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -84,15 +85,30 @@ public final class VSMechaRegistry {
 	public static final class Blocks {
 		private static final RegistrationHelper<Block> REGISTRY = PlatformHelper.get().createRegistrationHelper(Registries.BLOCK);
 
-		public static final RegistryEntry<CapsuleSeatBlock> CAPSULE_SEAT = REGISTRY.register("capsule_seat", () -> new CapsuleSeatBlock(BlockBehaviour.Properties.of()));
-		public static final RegistryEntry<CapsuleHeadBlock> CAPSULE_HEAD = REGISTRY.register("capsule_head", () -> new CapsuleHeadBlock(BlockBehaviour.Properties.of()));
+		private static BlockBehaviour.Properties properties() {
+			return BlockBehaviour.Properties.of().isValidSpawn((state, level, pos, entityType) -> false);
+		}
 
-		public static final RegistryEntry<EnergyPortBlock> ENERGY_PORT = REGISTRY.register("energy_port", () -> new EnergyPortBlock(BlockBehaviour.Properties.of()));
-		public static final RegistryEntry<PlasmaCapacitorBlock> PLASMA_CAPACITOR = REGISTRY.register("plasma_capacitor", () -> new PlasmaCapacitorBlock(BlockBehaviour.Properties.of()));
-		public static final RegistryEntry<ThermalEnergyCoreBlock> THERMAL_ENERGY_CORE = REGISTRY.register("thermal_energy_core", () -> new ThermalEnergyCoreBlock(BlockBehaviour.Properties.of()));
+		public static final RegistryEntry<CapsuleHeadBlock> CAPSULE_HEAD = REGISTRY.register("capsule_head", () -> new CapsuleHeadBlock(
+			properties()
+				.noOcclusion()
+				.isRedstoneConductor((state, level, pos) -> false)
+				.isSuffocating((state, level, pos) -> false)
+				.isViewBlocking((state, level, pos) -> false)
+				.requiresCorrectToolForDrops()
+		));
+		public static final RegistryEntry<CapsuleSeatBlock> CAPSULE_SEAT = REGISTRY.register("capsule_seat", () -> new CapsuleSeatBlock(
+			properties()
+				.isRedstoneConductor((state, level, pos) -> false)
+				.requiresCorrectToolForDrops()
+		));
 
-		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(BlockBehaviour.Properties.of()));
-		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(BlockBehaviour.Properties.of().noCollission()));
+		public static final RegistryEntry<EnergyPortBlock> ENERGY_PORT = REGISTRY.register("energy_port", () -> new EnergyPortBlock(properties()));
+		public static final RegistryEntry<PlasmaCapacitorBlock> PLASMA_CAPACITOR = REGISTRY.register("plasma_capacitor", () -> new PlasmaCapacitorBlock(properties()));
+		public static final RegistryEntry<ThermalEnergyCoreBlock> THERMAL_ENERGY_CORE = REGISTRY.register("thermal_energy_core", () -> new ThermalEnergyCoreBlock(properties()));
+
+		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(properties()));
+		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(properties().noCollission()));
 
 		public static final RegistryEntry<StainedToolBlock> WHITE_TOOL_BLOCK =
 			REGISTRY.register("white_tool_block", () -> new StainedToolBlock(DyeColor.WHITE, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.WHITE_CONCRETE)));
@@ -199,6 +215,15 @@ public final class VSMechaRegistry {
 			return entry;
 		}
 
+		public static final RegistryEntry<BlockItem> CAPSULE_HEAD = ofBlock(
+			Blocks.CAPSULE_HEAD,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.RARE).stacksTo(1))
+		);
+		public static final RegistryEntry<BlockItem> CAPSULE_SEAT = ofBlock(
+			Blocks.CAPSULE_SEAT,
+			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(1))
+		);
+
 		public static final RegistryEntry<BlockItem> ENERGY_PORT = ofBlock(
 			Blocks.ENERGY_PORT,
 			(block, props) -> new BlockItem(block, props)
@@ -300,9 +325,15 @@ public final class VSMechaRegistry {
 			"seat",
 			() -> EntityType.Builder.<SeatEntity>of(SeatEntity::new, MobCategory.MISC)
 				.sized(0, 0)
-				.clientTrackingRange(0)
+				.noSummon()
+				.canSpawnFarFromPlayer()
+				.clientTrackingRange(32)
 				.updateInterval(Integer.MAX_VALUE)
 		);
+
+		public static void onRegisterEntityRender(final EntityRendererRegister register) {
+			register.accept(SEAT.get(), SeatEntity.Renderer::new);
+		}
 
 		private Entities() {}
 	}
@@ -320,5 +351,10 @@ public final class VSMechaRegistry {
 				})
 				.build()
 		);
+	}
+
+	@FunctionalInterface
+	public interface EntityRendererRegister {
+		<T extends Entity> void accept(EntityType<? extends T> type, final EntityRendererProvider<T> provider);
 	}
 }

@@ -9,10 +9,12 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.BlockHitResult;
 
 import java.util.UUID;
 
@@ -26,6 +28,8 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 	private UUID playerUUID = null; 
 	private SeatEntity seatEntity = null;
 	private UUID seatUUID = null;
+
+	private int ticks = 0;
 
 	public CapsuleSeatBlockEntity(final BlockEntityType<? extends CapsuleSeatBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -62,7 +66,11 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 
 	public SeatEntity getSeatEntity() {
 		if (this.seatEntity == null && this.seatUUID != null) {
-			if (((ServerLevel) (this.getLevel())).getEntity(this.seatUUID) instanceof SeatEntity seatEntity) {
+			final Entity entity = ((ServerLevel) (this.getLevel())).getEntity(this.seatUUID);
+			if (entity == null && this.playerUUID != null) {
+				return null;
+			}
+			if (entity instanceof SeatEntity seatEntity) {
 				this.seatEntity = seatEntity;
 			} else {
 				this.seatUUID = null;
@@ -84,24 +92,29 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 		this.seatEntity = null;
 	}
 
-	public SeatEntity getOrCreateSeatEntity() {
+	private SeatEntity getOrCreateSeatEntity() {
 		final SeatEntity entity = this.getSeatEntity();
-		if (entity != null) {
+		if (this.playerUUID != null || entity != null) {
 			return entity;
 		}
 		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final BlockPos pos = this.getBlockPos();
 		final SeatEntity newEntity = new SeatEntity(VSMechaRegistry.Entities.SEAT.get(), level);
+		newEntity.setAttachedBlockPos(pos);
+		newEntity.setPos(pos.getCenter().add(0, -0.3, 0));
+		this.seatEntity = newEntity;
+		this.seatUUID = newEntity.getUUID();
 		level.addFreshEntity(newEntity);
 		this.setChanged();
 		return newEntity;
 	}
 
 	public void setPlayer(final Player player) {
-		if (this.player != player) {
+		if (this.player == player) {
 			return;
 		}
 		this.player = player;
-		this.playerUUID = player.getUUID();
+		this.playerUUID = player == null ? null : player.getUUID();
 		this.setChanged();
 	}
 
@@ -153,12 +166,18 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 			this.player = null;
 			this.playerUUID = null;
 		}
+		if (data.contains("Seat")) {
+			this.seatUUID = data.getUUID("Seat");
+		}
 	}
 
 	@Override
 	protected void saveAdditional(final CompoundTag data) {
 		super.saveAdditional(data);
 		data.putBoolean("LifeSupport", this.lifeSupportEnabled);
+		if (this.seatUUID != null) {
+			data.putUUID("Seat", this.seatUUID);
+		}
 	}
 
 	@Override
@@ -171,6 +190,22 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 
 	@Override
 	public void serverTick() {
+		if (this.seatEntity != null) {
+			if (this.seatEntity.isRemoved()) {
+				final Entity.RemovalReason reason = this.seatEntity.getRemovalReason();
+				if (reason == Entity.RemovalReason.UNLOADED_TO_CHUNK || reason == Entity.RemovalReason.UNLOADED_WITH_PLAYER) {
+					this.seatEntity = null;
+				} else {
+					this.seatEntity = null;
+					this.seatUUID = null;
+					this.setChanged();
+				}
+			} else if (this.playerUUID != null && (this.player == null || this.player.isRemoved() || !this.seatEntity.hasPassenger(this.player))) {
+				this.player = null;
+				this.playerUUID = null;
+				this.setChanged();
+			}
+		}
 		if (this.isEnabled()) {
 			final int energy = this.getEnergyStored();
 			if (this.isLifeSupportEnabled() && energy >= LIFE_SUPPORT_USE) {
@@ -181,15 +216,37 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 		super.serverTick();
 	}
 
+	public boolean onUse(final Player player, final BlockHitResult hit) {
+		if (this.playerUUID != null) {
+			if (player.getUUID().equals(this.playerUUID)) {
+				return this.onSeatedUse(player, hit);
+			}
+			return false;
+		}
+		if (!(this.getLevel() instanceof ServerLevel level)) {
+			return true;
+		}
+		final SeatEntity seat = this.getOrCreateSeatEntity();
+		if (seat == null || !player.startRiding(seat)) {
+			return false;
+		}
+		this.setPlayer(player);
+		return true;
+	}
+
+	public boolean onSeatedUse(final Player player, final BlockHitResult hit) {
+		return true;
+	}
+
 	protected void tickLifeSupport() {
 		final int diff = STANDARD_HEAT - this.getHeat();
 		final int maxAdjust = this.getMaxHeatAdjustRate();
 		this.transferHeat(diff < 0 ? Math.max(diff, -maxAdjust) : Math.min(diff, maxAdjust));
 
-		final Entity seatEntity = this.seatEntity;
+		final Entity seatEntity = this.getSeatEntity();
 		if (seatEntity != null) {
 			final Entity passenger = seatEntity.getFirstPassenger();
-			if (passenger != null) {
+			if (passenger != null && (!(passenger instanceof LivingEntity livingEntity) || !livingEntity.isDeadOrDying())) {
 				this.tickLifeSupportOnPassenger(passenger);
 			}
 		}
@@ -199,5 +256,14 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 		entity.clearFire();
 		entity.setAirSupply(entity.getMaxAirSupply());
 		entity.setTicksFrozen(0);
+		this.ticks++;
+		if (this.ticks % 5 == 0) {
+			if (entity instanceof LivingEntity livingEntity) {
+				livingEntity.setHealth(livingEntity.getHealth() + 1);
+			}
+			if (entity instanceof Player player) {
+				player.getFoodData().eat(20, 20);
+			}
+		}
 	}
 }

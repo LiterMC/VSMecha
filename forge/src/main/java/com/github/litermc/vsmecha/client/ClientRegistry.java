@@ -2,6 +2,7 @@ package com.github.litermc.vsmecha.client;
 
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -16,5 +17,10 @@ public final class ClientRegistry {
 		event.enqueueWork(() -> {
 			VSMechaRegistry.Blocks.onRegisterRenderType(ItemBlockRenderTypes::setRenderLayer);
 		});
+	}
+
+	@SubscribeEvent
+	public static void registerRenderer(final EntityRenderersEvent.RegisterRenderers event) {
+		VSMechaRegistry.Entities.onRegisterEntityRender(event::registerEntityRenderer);
 	}
 }
