@@ -1,13 +1,22 @@
 package com.github.litermc.vsmecha.block.control;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
+import com.github.litermc.vsmecha.accessor.PlayerListAccessor;
 import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
 import com.github.litermc.vsmecha.entity.SeatEntity;
 
+import com.mojang.authlib.GameProfile;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -24,10 +33,9 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 	private final Direction direction;
 	private boolean lifeSupportEnabled = true;
 
-	private Player player = null;
-	private UUID playerUUID = null; 
 	private SeatEntity seatEntity = null;
 	private UUID seatUUID = null;
+	private UUID playerUUID = null; 
 
 	private int ticks = 0;
 
@@ -54,10 +62,6 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 
 	public void setLifeSupportEnabled(final boolean lifeSupportEnabled) {
 		this.lifeSupportEnabled = lifeSupportEnabled;
-	}
-
-	public Player getPlayer() {
-		return this.player;
 	}
 
 	public UUID getPlayerUUID() {
@@ -110,11 +114,11 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 	}
 
 	public void setPlayer(final Player player) {
-		if (this.player == player) {
+		final UUID uuid = player == null ? null : player.getUUID();
+		if (this.playerUUID == uuid) {
 			return;
 		}
-		this.player = player;
-		this.playerUUID = player == null ? null : player.getUUID();
+		this.playerUUID = uuid;
 		this.setChanged();
 	}
 
@@ -163,7 +167,6 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 		if (data.contains("Player")) {
 			this.playerUUID = data.getUUID("Player");
 		} else {
-			this.player = null;
 			this.playerUUID = null;
 		}
 		if (data.contains("Seat")) {
@@ -190,6 +193,7 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 
 	@Override
 	public void serverTick() {
+		final ServerLevel level = (ServerLevel) (this.getLevel());
 		if (this.seatEntity != null) {
 			if (this.seatEntity.isRemoved()) {
 				final Entity.RemovalReason reason = this.seatEntity.getRemovalReason();
@@ -200,10 +204,12 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 					this.seatUUID = null;
 					this.setChanged();
 				}
-			} else if (this.playerUUID != null && (this.player == null || this.player.isRemoved() || !this.seatEntity.hasPassenger(this.player))) {
-				this.player = null;
-				this.playerUUID = null;
-				this.setChanged();
+			} else if (this.playerUUID != null) {
+				final Entity player = level.getEntity(this.playerUUID);
+				if ((player == null || !this.seatEntity.hasPassenger(player))) {
+					this.playerUUID = null;
+					this.setChanged();
+				}
 			}
 		}
 		if (this.isEnabled()) {
@@ -235,7 +241,49 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 	}
 
 	public boolean onSeatedUse(final Player player, final BlockHitResult hit) {
+
 		return true;
+	}
+
+	public void onRemove() {
+		if (!(this.getLevel() instanceof ServerLevel level)) {
+			return;
+		}
+		final Entity seatEntity = this.getSeatEntity();
+		this.seatUUID = null;
+		this.setChanged();
+		if (seatEntity != null) {
+			seatEntity.discard();
+			return;
+		}
+		if (this.playerUUID == null || level.getEntity(this.playerUUID) != null) {
+			return;
+		}
+		final MinecraftServer server = level.getServer();
+
+		final GameProfile profile = server.getProfileCache().get(this.playerUUID).orElse(null);
+		this.playerUUID = null;
+		if (profile == null) {
+			return;
+		}
+		final PlayerList playerList = server.getPlayerList();
+		final ServerPlayer player = playerList.getPlayerForLogin(profile);
+		final CompoundTag playerData = playerList.load(player);
+		if (player.isSpectator() || player.isCreative()) {
+			return;
+		}
+		player.setServerLevel(level);
+		player.loadGameTypes(playerData);
+		new ServerGamePacketListenerImpl(server, new Connection(PacketFlow.CLIENTBOUND), player) {
+			@Override
+			public void send(final Packet<?> packet) {}
+		};
+
+		final Entity killer = null; // TODO
+		player.setHealth(0);
+		player.die(player.damageSources().explosion(killer, killer));
+		player.unRide();
+		((PlayerListAccessor)(playerList)).vsm$save(player);
 	}
 
 	protected void tickLifeSupport() {
