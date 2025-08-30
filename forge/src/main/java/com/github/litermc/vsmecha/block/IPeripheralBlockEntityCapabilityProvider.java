@@ -1,6 +1,8 @@
 package com.github.litermc.vsmecha.block;
 
 import com.github.litermc.vsmecha.Constants;
+import com.github.litermc.vsmecha.block.IJointPeripheralBlockEntity;
+import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
 
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -15,12 +17,13 @@ import dan200.computercraft.shared.Capabilities;
 public final class IPeripheralBlockEntityCapabilityProvider implements ICapabilityProvider {
 	public static final ResourceLocation CAPABILITY_ID = new ResourceLocation(Constants.MOD_ID, "peripheral");
 
-	private final BlockEntity be;
+	private final IPeripheralBlockEntity be;
 	private final LazyOptional<Object> lazyPeripheral;
+	private LazyOptional<Object> lazyWireElement = LazyOptional.empty();
 
 	private IPeripheralBlockEntityCapabilityProvider(final BlockEntity be) {
-		this.be = be;
-		this.lazyPeripheral = LazyOptional.of(((IPeripheralBlockEntity) (be))::getOrCreatePeripheral);
+		this.be = (IPeripheralBlockEntity) (be);
+		this.lazyPeripheral = LazyOptional.of(this.be::getOrCreatePeripheral);
 	}
 
 	@Override
@@ -28,11 +31,21 @@ public final class IPeripheralBlockEntityCapabilityProvider implements ICapabili
 		if (cap == Capabilities.CAPABILITY_PERIPHERAL) {
 			return this.lazyPeripheral.cast();
 		}
+		if (cap == Capabilities.CAPABILITY_WIRED_ELEMENT) {
+			if (this.be instanceof IJointPeripheralBlockEntity jbe && jbe.canConnectPeripheralWire(side)) {
+				if (!this.lazyWireElement.isPresent() && this.be.getShipModemPeripheral() instanceof ShipModemPeripheral modem) {
+					this.lazyWireElement = LazyOptional.of(modem::getElement);
+				}
+				return this.lazyWireElement.cast();
+			}
+			return LazyOptional.empty();
+		}
 		return LazyOptional.empty();
 	}
 
 	private void invalidate() {
 		this.lazyPeripheral.invalidate();
+		this.lazyWireElement.invalidate();
 	}
 
 	public static void onGatherCapabilities(final AttachCapabilitiesEvent<BlockEntity> event) {

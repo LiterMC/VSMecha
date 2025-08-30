@@ -49,12 +49,29 @@ public abstract class BaseBlockEntity extends BlockEntity {
 		level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 0 /* no use on server-side */);
 	}
 
-	public void serverTick() {
-		final ServerShip ship = ShipUtil.getServerShip((ServerLevel) (this.getLevel()), this.getBlockPos());
-		if (ship != null) {
-			ShipNetworkAttachment.get(ship).addBlockEntity(this);
+	@Override
+	public void setLevel(final Level level) {
+		super.setLevel(level);
+		if (level instanceof ServerLevel serverLevel) {
+			final ServerShip ship = ShipUtil.getServerShip(serverLevel, this.getBlockPos());
+			if (ship != null) {
+				ShipNetworkAttachment.get(ship).addBlockEntity(this);
+			}
 		}
 	}
+
+	@Override
+	public void setRemoved() {
+		super.setRemoved();
+		if (this.getLevel() instanceof ServerLevel level) {
+			final ServerShip ship = ShipUtil.getServerShip(level, this.getBlockPos());
+			if (ship != null) {
+				ShipNetworkAttachment.get(ship).removeBlockEntity(this);
+			}
+		}
+	}
+
+	public void serverTick() {}
 
 	public void clientTick() {}
 }

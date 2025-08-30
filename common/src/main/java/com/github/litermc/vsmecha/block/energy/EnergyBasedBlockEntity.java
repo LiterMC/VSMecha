@@ -1,6 +1,7 @@
 package com.github.litermc.vsmecha.block.energy;
 
 import com.github.litermc.vsmecha.block.BaseBlockEntity;
+import com.github.litermc.vsmecha.block.IJointPeripheralBlockEntity;
 import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
@@ -15,8 +16,12 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
+import dan200.computercraft.api.network.wired.WiredElement;
+import dan200.computercraft.api.network.wired.WiredNode;
 import dan200.computercraft.api.peripheral.IPeripheral;
 import dan200.computercraft.shared.peripheral.modem.wired.WiredModemLocalPeripheral;
+import dan200.computercraft.shared.platform.ComponentAccess;
+import dan200.computercraft.shared.platform.PlatformHelper;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,6 +37,10 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 
 	private Object /*IPeripheral*/ peripheral = null;
 	public Object /*ShipModemPeripheral*/ modemPeripheral = null;
+	private final Object /*ComponentAccess<WiredElement>*/ cableAccess = CompatMods.COMPUTERCRAFT.isLoaded() && this instanceof IJointPeripheralBlockEntity
+		? PlatformHelper.get().createWiredElementAccess(this, (side) -> this.queueRefreshCables())
+		: null;
+	private volatile boolean refreshingCables = false;
 
 	protected EnergyBasedBlockEntity(final BlockEntityType<? extends EnergyBasedBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -199,16 +208,27 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 	@Override
 	public void setLevel(final Level level) {
 		super.setLevel(level);
-		if (!level.isClientSide && CompatMods.COMPUTERCRAFT.isLoaded() && this.isOnShip()) {
+		if (!level.isClientSide && CompatMods.COMPUTERCRAFT.isLoaded() && (this instanceof IJointPeripheralBlockEntity || this.isOnShip())) {
+			final ShipModemPeripheral modemPeripheral = new ShipModemPeripheral(this);
+			this.modemPeripheral = modemPeripheral;
+			final WiredModemLocalPeripheral localPeripheral = modemPeripheral.getLocalPeripheral();
 			TaskUtil.queueTickEnd(() -> {
-				final ShipModemPeripheral modemPeripheral = new ShipModemPeripheral(this);
-				this.modemPeripheral = modemPeripheral;
-				final WiredModemLocalPeripheral localPeripheral = modemPeripheral.getLocalPeripheral();
 				localPeripheral.attach(level, this.getBlockPos().above(), Direction.DOWN);
 				final Map<String, IPeripheral> peripheralMap = new HashMap<>();
 				localPeripheral.extendMap(peripheralMap);
 				modemPeripheral.getElement().getNode().updatePeripherals(peripheralMap);
 			});
+			if (this instanceof IJointPeripheralBlockEntity) {
+				this.queueRefreshCables();
+			}
+		}
+	}
+
+	@Override
+	public void setRemoved() {
+		super.setRemoved();
+		if (CompatMods.COMPUTERCRAFT.isLoaded() && this.modemPeripheral instanceof ShipModemPeripheral modem) {
+			modem.getElement().getNode().remove();
 		}
 	}
 
@@ -218,6 +238,34 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		if (this.empTicks > 0) {
 			this.empTicks--;
 			this.setChanged();
+		}
+	}
+
+	private void queueRefreshCables() {
+		if (this.refreshingCables) {
+			return;
+		}
+		this.refreshingCables = true;
+		TaskUtil.queueTickEnd(this::refreshCables);
+	}
+
+	private void refreshCables() {
+		this.refreshingCables = false;
+		if (!(this instanceof IJointPeripheralBlockEntity jbe)) {
+			return;
+		}
+		final WiredNode node = ((ShipModemPeripheral) (this.modemPeripheral)).getElement().getNode();
+		final ComponentAccess<WiredElement> cableAccess = (ComponentAccess<WiredElement>) (this.cableAccess);
+		for (final Direction dir : Direction.values()) {
+			final WiredElement element = cableAccess.get(dir);
+			if (element == null) {
+				continue;
+			}
+			if (jbe.canConnectPeripheralWire(dir)) {
+				node.connectTo(element.getNode());
+			} else {
+				node.disconnectFrom(element.getNode());
+			}
 		}
 	}
 }

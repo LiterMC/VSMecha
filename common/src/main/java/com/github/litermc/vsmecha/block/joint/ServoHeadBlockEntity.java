@@ -2,7 +2,7 @@ package com.github.litermc.vsmecha.block.joint;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
 import com.github.litermc.vsmecha.block.BaseBlockEntity;
-import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
+import com.github.litermc.vsmecha.block.IJointPeripheralBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.ServoHeadPeripheral;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
@@ -21,19 +21,27 @@ import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
+import dan200.computercraft.api.network.wired.WiredElement;
+import dan200.computercraft.api.network.wired.WiredNode;
 import dan200.computercraft.api.peripheral.IPeripheral;
 import dan200.computercraft.shared.peripheral.modem.wired.WiredModemLocalPeripheral;
+import dan200.computercraft.shared.platform.ComponentAccess;
+import dan200.computercraft.shared.platform.PlatformHelper;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlockEntity, IPeripheralBlockEntity {
+public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlockEntity, IJointPeripheralBlockEntity {
 	private final Direction direction;
 	BlockPos basePos = null;
 	ServoBlockEntity.ServoInfo servoInfo = null;
 
 	private Object /*IPeripheral*/ peripheral = null;
 	private Object /*ShipModemPeripheral*/ modemPeripheral = null;
+	private final Object /*ComponentAccess<WiredElement>*/ cableAccess = CompatMods.COMPUTERCRAFT.isLoaded()
+		? PlatformHelper.get().createWiredElementAccess(this, (side) -> this.queueRefreshCables())
+		: null;
+	private volatile boolean refreshingCables = false;
 
 	public ServoHeadBlockEntity(final BlockEntityType<? extends ServoHeadBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -80,18 +88,33 @@ public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlock
 	}
 
 	@Override
+	public boolean canConnectPeripheralWire(final Direction dir) {
+		return this.direction.getOpposite() == dir;
+	}
+
+	@Override
 	public void setLevel(final Level level) {
 		super.setLevel(level);
-		if (!level.isClientSide && CompatMods.COMPUTERCRAFT.isLoaded() && VSGameUtilsKt.isBlockInShipyard(level, this.getBlockPos())) {
+		if (!level.isClientSide && CompatMods.COMPUTERCRAFT.isLoaded()) {
+			final ShipModemPeripheral modemPeripheral = new ShipModemPeripheral(this);
+			this.modemPeripheral = modemPeripheral;
+			final WiredModemLocalPeripheral localPeripheral = modemPeripheral.getLocalPeripheral();
+			final WiredNode node = modemPeripheral.getElement().getNode();
 			TaskUtil.queueTickEnd(() -> {
-				final ShipModemPeripheral modemPeripheral = new ShipModemPeripheral(this);
-				this.modemPeripheral = modemPeripheral;
-				final WiredModemLocalPeripheral localPeripheral = modemPeripheral.getLocalPeripheral();
 				localPeripheral.attach(level, this.getBlockPos().above(), Direction.DOWN);
 				final Map<String, IPeripheral> peripheralMap = new HashMap<>();
 				localPeripheral.extendMap(peripheralMap);
-				modemPeripheral.getElement().getNode().updatePeripherals(peripheralMap);
+				node.updatePeripherals(peripheralMap);
 			});
+			this.queueRefreshCables();
+		}
+	}
+
+	@Override
+	public void setRemoved() {
+		super.setRemoved();
+		if (CompatMods.COMPUTERCRAFT.isLoaded() && this.modemPeripheral instanceof ShipModemPeripheral modem) {
+			modem.getElement().getNode().remove();
 		}
 	}
 
@@ -117,5 +140,30 @@ public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlock
 		this.servoInfo.detached = true;
 		this.servoInfo = null;
 		this.basePos = null;
+	}
+
+	private void queueRefreshCables() {
+		if (this.refreshingCables) {
+			return;
+		}
+		this.refreshingCables = true;
+		TaskUtil.queueTickEnd(this::refreshCables);
+	}
+
+	private void refreshCables() {
+		this.refreshingCables = false;
+		final WiredNode node = ((ShipModemPeripheral) (this.modemPeripheral)).getElement().getNode();
+		final ComponentAccess<WiredElement> cableAccess = (ComponentAccess<WiredElement>) (this.cableAccess);
+		for (final Direction dir : Direction.values()) {
+			final WiredElement element = cableAccess.get(dir);
+			if (element == null) {
+				continue;
+			}
+			if (this.canConnectPeripheralWire(dir)) {
+				node.connectTo(element.getNode());
+			} else {
+				node.disconnectFrom(element.getNode());
+			}
+		}
 	}
 }

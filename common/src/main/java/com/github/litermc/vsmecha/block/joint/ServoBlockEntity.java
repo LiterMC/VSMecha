@@ -1,8 +1,11 @@
 package com.github.litermc.vsmecha.block.joint;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
+import com.github.litermc.vsmecha.block.IJointPeripheralBlockEntity;
 import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
+import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.ServoPeripheral;
+import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
 import com.github.litermc.vsmecha.util.ShipUtil;
 
 import net.minecraft.core.BlockPos;
@@ -28,7 +31,9 @@ import org.valkyrienskies.core.apigame.constraints.VSHingeTargetAngleConstraint;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttachableBlockEntity {
+import dan200.computercraft.api.network.wired.WiredNode;
+
+public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttachableBlockEntity, IJointPeripheralBlockEntity {
 	private static final Vector3dc ZERO_VEC3 = new Vector3d();
 	private static final Quaterniondc FREEROT_QUAT = new Quaterniond(new AxisAngle4d(Math.PI / 2, 0, 0, 1));
 	private static final double ATTACH_COMPLIANCE = 0;
@@ -43,6 +48,9 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	private volatile double angle = 0;
 	private volatile double workingAngle = 0;
 	private volatile double targetAngle = 0;
+
+	private int autoAttachCD = 20;
+	private Object headNode = null;
 
 	public ServoBlockEntity(final BlockEntityType<? extends ServoBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -189,7 +197,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos pos = this.getBlockPos();
 
-		if (!(level.getBlockEntity(otherPos) instanceof ServoHeadBlockEntity head)) {
+		if (!(level.getBlockEntity(otherPos) instanceof final ServoHeadBlockEntity head)) {
 			return false;
 		}
 		if (head.servoInfo != null) {
@@ -270,6 +278,14 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		);
 	}
 
+	private void disconnectHeadNode() {
+		if (CompatMods.COMPUTERCRAFT.isLoaded() && this.headNode != null) {
+			final WiredNode selfNode = ((ShipModemPeripheral) (this.getShipModemPeripheral())).getElement().getNode();
+			selfNode.disconnectFrom((WiredNode) (this.headNode));
+			this.headNode = null;
+		}
+	}
+
 	@Override
 	public boolean detach() {
 		if (this.pendingHeadPos != null) {
@@ -281,9 +297,13 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		}
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
+
+		this.disconnectHeadNode();
+
 		this.servoInfo.detach(world);
 		this.servoInfo = null;
 		this.headPos = null;
+		this.autoAttachCD = 20 * 3;
 		this.setChanged();
 		return true;
 	}
@@ -310,6 +330,11 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	}
 
 	@Override
+	public boolean canConnectPeripheralWire(final Direction dir) {
+		return this.direction != dir;
+	}
+
+	@Override
 	public void serverTick() {
 		super.serverTick();
 
@@ -318,16 +343,15 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
 		if (this.headPos != null) {
 			if (this.servoInfo.detached) {
+				this.disconnectHeadNode();
 				this.servoInfo = null;
 				this.headPos = null;
 				this.setChanged();
-			} else {
-				if (
-					!(level.getBlockEntity(this.headPos) instanceof ServoHeadBlockEntity) ||
-					ShipUtil.getShipOrDimId(level, pos) == ShipUtil.getShipOrDimId(level, this.headPos)
-				) {
-					this.detach();
-				}
+			} else if (
+				!(level.getBlockEntity(this.headPos) instanceof ServoHeadBlockEntity) ||
+				ShipUtil.getShipOrDimId(level, pos) == ShipUtil.getShipOrDimId(level, this.headPos)
+			) {
+				this.detach();
 			}
 		}
 		if (!this.isAttached()) {
@@ -338,10 +362,31 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 				return;
 			}
 			if (this.getAutoAttach()) {
-				this.tryAttach();
+				if (this.autoAttachCD <= 0) {
+					this.tryAttach();
+					this.autoAttachCD = 20;
+				} else {
+					this.autoAttachCD--;
+				}
+			} else {
+				this.autoAttachCD = 20;
 			}
 			return;
 		}
+
+		if (
+			CompatMods.COMPUTERCRAFT.isLoaded() &&
+			this.headNode == null &&
+			level.getBlockEntity(this.headPos) instanceof final ServoHeadBlockEntity head &&
+			this.getShipModemPeripheral() instanceof final ShipModemPeripheral selfModem &&
+			head.getShipModemPeripheral() instanceof final ShipModemPeripheral headModem
+		) {
+			final WiredNode selfNode = selfModem.getElement().getNode();
+			final WiredNode headNode = headModem.getElement().getNode();
+			selfNode.connectTo(headNode);
+			this.headNode = headNode;
+		}
+
 		double maxSpeed = this.getMaxRotateSpeed();
 		if (this.isDangerous()) {
 			maxSpeed /= 2;

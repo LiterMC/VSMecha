@@ -97,24 +97,37 @@ public final class ShipNetworkAttachment {
 		}
 	}
 
-	private void updateTickedNetworks(final Set<ShipNetworkAttachment> tickedNetworks) {
-		final Set<ShipNetworkAttachment> connectedNetworks = new HashSet<>(tickedNetworks);
-		final Set<ShipNetworkAttachment> disconnectedNetworks = new HashSet<>(this.lastTickedNetworks);
-		connectedNetworks.removeAll(this.lastTickedNetworks);
-		disconnectedNetworks.removeAll(tickedNetworks);
-
-		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
-			final WiredNode selfNode = (WiredNode) (this.globalNode);
-			for (final ShipNetworkAttachment other : connectedNetworks) {
-				selfNode.connectTo((WiredNode) (other.globalNode));
-			}
-			for (final ShipNetworkAttachment other : disconnectedNetworks) {
-				selfNode.disconnectFrom((WiredNode) (other.globalNode));
-			}
+	public void removeBlockEntity(final BlockEntity be) {
+		final BlockPos pos = be.getBlockPos();
+		if (be instanceof IEnergyBlockEntity) {
+			this.energyBlocks.remove(pos);
 		}
-
-		this.lastTickedNetworks = tickedNetworks;
+		if (be instanceof IJointBlockEntity) {
+			this.joints.remove(pos);
+		}
+		if (CompatMods.COMPUTERCRAFT.isLoaded() && be instanceof IPeripheralBlockEntity) {
+			this.peripherals.remove(be);
+		}
 	}
+
+	// private void updateTickedNetworks(final Set<ShipNetworkAttachment> tickedNetworks) {
+	// 	final Set<ShipNetworkAttachment> connectedNetworks = new HashSet<>(tickedNetworks);
+	// 	final Set<ShipNetworkAttachment> disconnectedNetworks = new HashSet<>(this.lastTickedNetworks);
+	// 	connectedNetworks.removeAll(this.lastTickedNetworks);
+	// 	disconnectedNetworks.removeAll(tickedNetworks);
+
+	// 	if (CompatMods.COMPUTERCRAFT.isLoaded()) {
+	// 		final WiredNode selfNode = (WiredNode) (this.globalNode);
+	// 		for (final ShipNetworkAttachment other : connectedNetworks) {
+	// 			selfNode.connectTo((WiredNode) (other.globalNode));
+	// 		}
+	// 		for (final ShipNetworkAttachment other : disconnectedNetworks) {
+	// 			selfNode.disconnectFrom((WiredNode) (other.globalNode));
+	// 		}
+	// 	}
+
+	// 	this.lastTickedNetworks = tickedNetworks;
+	// }
 
 	private boolean preTick(final ServerLevel level, final LoadedServerShip ship) {
 		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
@@ -141,7 +154,7 @@ public final class ShipNetworkAttachment {
 			final ShipNetworkAttachment network = networks.get(i);
 			hasThingToTick = hasThingToTick || !network.energyBlocks.isEmpty();
 
-			final Set<ShipNetworkAttachment> networkSet = new HashSet<>();
+			// final Set<ShipNetworkAttachment> networkSet = new HashSet<>();
 			final Iterator<BlockPos> jointIter = network.joints.iterator();
 			while (jointIter.hasNext()) {
 				final BlockPos jointPos = jointIter.next();
@@ -149,15 +162,15 @@ public final class ShipNetworkAttachment {
 					jointIter.remove();
 					continue;
 				}
-				if (!jbe.canTransferEnergy()) {
-					continue;
-				}
 				final ServerShip otherShip = jbe.getPeerShip();
 				if (!(otherShip instanceof LoadedServerShip otherLoadedShip)) {
 					continue;
 				}
 				final ShipNetworkAttachment otherNetwork = ShipNetworkAttachment.get(otherShip);
-				networkSet.add(otherNetwork);
+				// networkSet.add(otherNetwork);
+				if (!jbe.canTransferEnergy()) {
+					continue;
+				}
 				if (!shipIDs.add(otherShip.getId())) {
 					continue;
 				}
@@ -167,7 +180,7 @@ public final class ShipNetworkAttachment {
 				}
 				networks.add(otherNetwork);
 			}
-			network.updateTickedNetworks(networkSet);
+			// network.updateTickedNetworks(networkSet);
 		}
 
 		if (!hasThingToTick) {
@@ -200,7 +213,7 @@ public final class ShipNetworkAttachment {
 				if (!(level.getBlockEntity(pos) instanceof IPeripheralBlockEntity)) {
 					final ShipModemPeripheral modem = (ShipModemPeripheral) (network.peripherals.get(pos));
 					pbeIter.remove();
-					((WiredNode) (this.globalNode)).disconnectFrom(modem.getElement().getNode());
+					modem.getElement().getNode().remove();
 				}
 			}
 		}

@@ -3,17 +3,14 @@ package com.github.litermc.vsmecha.compat.computercraft;
 import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
 
 import dan200.computercraft.api.lua.LuaFunction;
-import dan200.computercraft.api.peripheral.IPeripheral;
 
 import java.util.Set;
 
-public abstract class EnergyBasedPeripheral<T extends EnergyBasedBlockEntity> implements IPeripheral {
+public abstract class EnergyBasedPeripheral<T extends EnergyBasedBlockEntity> extends BasePeripheral<T> {
 	private static final Set<String> ADDTIONAL_TYPES = Set.of("energy_storage");
 
-	protected final T be;
-
 	protected EnergyBasedPeripheral(final T be) {
-		this.be = be;
+		super(be);
 	}
 
 	@Override
@@ -89,17 +86,6 @@ public abstract class EnergyBasedPeripheral<T extends EnergyBasedBlockEntity> im
 	@LuaFunction
 	public final int getDangerousHeatLimit() {
 		return this.be.getDangerousHeatLimit();
-	}
-
-	@Override
-	public boolean equals(final IPeripheral other) {
-		if (this == other) {
-			return true;
-		}
-		if (other instanceof EnergyBasedPeripheral otherPeripheral) {
-			return this.be == otherPeripheral.be;
-		}
-		return false;
 	}
 
 	public static final class Instance extends EnergyBasedPeripheral<EnergyBasedBlockEntity> {

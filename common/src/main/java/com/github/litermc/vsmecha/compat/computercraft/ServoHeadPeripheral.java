@@ -10,15 +10,12 @@ import net.minecraft.server.level.ServerLevel;
 
 import dan200.computercraft.api.lua.LuaFunction;
 import dan200.computercraft.api.lua.MethodResult;
-import dan200.computercraft.api.peripheral.IPeripheral;
 
 import org.valkyrienskies.core.api.ships.ServerShip;
 
-public class ServoHeadPeripheral implements IPeripheral {
-	protected final ServoHeadBlockEntity be;
-
+public class ServoHeadPeripheral extends BasePeripheral<ServoHeadBlockEntity> {
 	public ServoHeadPeripheral(final ServoHeadBlockEntity be) {
-		this.be = be;
+		super(be);
 	}
 
 	@Override
@@ -59,16 +56,5 @@ public class ServoHeadPeripheral implements IPeripheral {
 			return null;
 		}
 		return modem.getLocalPeripheral().getConnectedName();
-	}
-
-	@Override
-	public boolean equals(final IPeripheral other) {
-		if (this == other) {
-			return true;
-		}
-		if (other instanceof ServoHeadPeripheral otherPeripheral) {
-			return this.be == otherPeripheral.be;
-		}
-		return false;
 	}
 }
