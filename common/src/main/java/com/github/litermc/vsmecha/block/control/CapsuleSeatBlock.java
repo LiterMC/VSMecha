@@ -21,24 +21,24 @@ public class CapsuleSeatBlock extends EnergyBasedBlock {
 		super(props);
 		this.registerDefaultState(
 			this.defaultBlockState()
-				.setValue(BlockStateProperties.FACING, Direction.UP)
+				.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH)
 		);
 	}
 
 	@Override
 	public void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
 		super.createBlockStateDefinition(builder);
-		builder.add(BlockStateProperties.FACING);
+		builder.add(BlockStateProperties.HORIZONTAL_FACING);
 	}
 
 	@Override
 	public BlockState getStateForPlacement(final BlockPlaceContext ctx) {
-		Direction dir = ctx.getNearestLookingDirection();
+		Direction dir = ctx.getHorizontalDirection();
 		if (!ctx.isSecondaryUseActive()) {
 			dir = dir.getOpposite();
 		}
 		return this.defaultBlockState()
-			.setValue(BlockStateProperties.FACING, dir);
+			.setValue(BlockStateProperties.HORIZONTAL_FACING, dir);
 	}
 
 	@Override

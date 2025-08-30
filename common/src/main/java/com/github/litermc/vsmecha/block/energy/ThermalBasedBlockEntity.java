@@ -19,6 +19,7 @@ import java.util.EnumMap;
 
 public abstract class ThermalBasedBlockEntity extends BaseBlockEntity implements IThermalBlockEntity {
 	private int heat = -1;
+	private volatile int lastTickHeat = -1;
 
 	protected ThermalBasedBlockEntity(final BlockEntityType<? extends ThermalBasedBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -27,6 +28,10 @@ public abstract class ThermalBasedBlockEntity extends BaseBlockEntity implements
 	@Override
 	public int getHeat() {
 		return this.heat;
+	}
+
+	public int getLastTickHeat() {
+		return this.lastTickHeat;
 	}
 
 	@Override
@@ -73,6 +78,7 @@ public abstract class ThermalBasedBlockEntity extends BaseBlockEntity implements
 	public void load(final CompoundTag data) {
 		super.load(data);
 		this.heat = data.getInt("Heat");
+		this.lastTickHeat = this.heat;
 	}
 
 	@Override
@@ -86,6 +92,7 @@ public abstract class ThermalBasedBlockEntity extends BaseBlockEntity implements
 		super.setLevel(level);
 		if (level instanceof ServerLevel serverLevel && this.heat == -1) {
 			this.heat = HeatAPI.getBiomeHeat(serverLevel, this.getBlockPos());
+			this.lastTickHeat = this.heat;
 		}
 	}
 
@@ -122,5 +129,7 @@ public abstract class ThermalBasedBlockEntity extends BaseBlockEntity implements
 		if (this.heat >= this.getMaxHeatCapacity()) {
 			this.onMelt();
 		}
+
+		this.lastTickHeat = this.heat;
 	}
 }

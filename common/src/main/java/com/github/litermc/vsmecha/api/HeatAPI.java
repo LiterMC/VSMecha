@@ -21,6 +21,8 @@ import java.util.Map;
 public final class HeatAPI {
 	private HeatAPI() {}
 
+	private static final double ZERO_CELSIUS = 273.15;
+
 	private static final Map<Fluid, Integer> FLUID_HEATS = new HashMap<>();
 	private static final Map<Block, Integer> BLOCK_HEATS = new HashMap<>();
 	static {
@@ -43,6 +45,23 @@ public final class HeatAPI {
 		BLOCK_HEATS.put(Blocks.ICE, 9000);
 		BLOCK_HEATS.put(Blocks.PACKED_ICE, 6000);
 		BLOCK_HEATS.put(Blocks.BLUE_ICE, 1000);
+	}
+
+	public static double unitToKelvin(final int heat) {
+		return heat * ZERO_CELSIUS / 10000.0;
+	}
+
+	public static double unitToCelsius(final int heat) {
+		return unitToKelvin(heat) - ZERO_CELSIUS;
+	}
+
+	public static int kelvinToUnit(final double heat) {
+		final double unit = Math.round(heat * 10000.0 / ZERO_CELSIUS);
+		return unit >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) (unit);
+	}
+
+	public static int celsiusToUnit(final double heat) {
+		return kelvinToUnit(heat + ZERO_CELSIUS);
 	}
 
 	public static int getBlockHeat(final ServerLevel level, final BlockPos pos) {

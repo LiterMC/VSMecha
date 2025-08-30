@@ -2,6 +2,7 @@ package com.github.litermc.vsmecha.block.joint;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
 import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
+import com.github.litermc.vsmecha.compat.computercraft.ServoPeripheral;
 import com.github.litermc.vsmecha.util.ShipUtil;
 
 import net.minecraft.core.BlockPos;
@@ -283,6 +284,9 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 
 	@Override
 	public boolean tryAttach() {
+		if (this.headPos != null) {
+			return false;
+		}
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos pos = this.getBlockPos();
 		final Vector3d attachPos = VSGameUtilsKt.toWorldCoordinates(level, new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5));
@@ -292,6 +296,11 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 			}
 		}
 		return false;
+	}
+
+	@Override
+	protected Object createPeripheral() {
+		return new ServoPeripheral(this);
 	}
 
 	@Override

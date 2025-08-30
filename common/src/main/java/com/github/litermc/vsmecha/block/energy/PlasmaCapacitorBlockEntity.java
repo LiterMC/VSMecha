@@ -1,8 +1,10 @@
 package com.github.litermc.vsmecha.block.energy;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
+import com.github.litermc.vsmecha.compat.computercraft.EnergyBasedPeripheral;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -53,8 +55,13 @@ public class PlasmaCapacitorBlockEntity extends EnergyBasedBlockEntity {
 	}
 
 	@Override
-	public boolean canPullByExternal() {
+	public boolean canPullByExternal(final Direction dir) {
 		return !this.isOnShip();
+	}
+
+	@Override
+	protected Object createPeripheral() {
+		return new EnergyBasedPeripheral.Instance("plasma_capacitor", this);
 	}
 
 	@Override

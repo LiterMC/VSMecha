@@ -3,6 +3,7 @@ package com.github.litermc.vsmecha.block.control;
 import com.github.litermc.vsmecha.VSMechaRegistry;
 import com.github.litermc.vsmecha.accessor.PlayerListAccessor;
 import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
+import com.github.litermc.vsmecha.compat.computercraft.CapsuleSeatPeripheral;
 import com.github.litermc.vsmecha.entity.SeatEntity;
 
 import com.mojang.authlib.GameProfile;
@@ -31,17 +32,17 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 	private static final int STANDARD_HEAT = 10000;
 	private static final int LIFE_SUPPORT_USE = 1000;
 	private final Direction direction;
-	private boolean lifeSupportEnabled = true;
+	private volatile boolean lifeSupportEnabled = true;
 
 	private SeatEntity seatEntity = null;
 	private UUID seatUUID = null;
-	private UUID playerUUID = null; 
+	private volatile UUID playerUUID = null; 
 
 	private int ticks = 0;
 
 	public CapsuleSeatBlockEntity(final BlockEntityType<? extends CapsuleSeatBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
-		this.direction = state.getValue(BlockStateProperties.FACING);
+		this.direction = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
 	}
 
 	public CapsuleSeatBlockEntity(final BlockPos pos, final BlockState state) {
@@ -61,7 +62,11 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 	}
 
 	public void setLifeSupportEnabled(final boolean lifeSupportEnabled) {
+		if (this.lifeSupportEnabled == lifeSupportEnabled) {
+			return;
+		}
 		this.lifeSupportEnabled = lifeSupportEnabled;
+		this.setChanged();
 	}
 
 	public UUID getPlayerUUID() {
@@ -158,6 +163,11 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 	@Override
 	public int getEnergyOutputLimit() {
 		return 0;
+	}
+
+	@Override
+	protected Object createPeripheral() {
+		return new CapsuleSeatPeripheral(this);
 	}
 
 	@Override

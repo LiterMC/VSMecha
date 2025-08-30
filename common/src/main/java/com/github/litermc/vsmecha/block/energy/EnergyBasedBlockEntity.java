@@ -3,6 +3,7 @@ package com.github.litermc.vsmecha.block.energy;
 import com.github.litermc.vsmecha.block.BaseBlockEntity;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -17,6 +18,8 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 
 	int energyOutputRemaining = 0;
 	int energyInputRemaining = 0;
+
+	private Object peripheral = null;
 
 	protected EnergyBasedBlockEntity(final BlockEntityType<? extends EnergyBasedBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -101,11 +104,15 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		return VSGameUtilsKt.isBlockInShipyard(this.getLevel(), this.getBlockPos());
 	}
 
-	public boolean canPullByExternal() {
+	public boolean hasDirectionalEnergyStorage() {
 		return false;
 	}
 
-	public boolean canPushByExternal() {
+	public boolean canPullByExternal(final Direction dir) {
+		return false;
+	}
+
+	public boolean canPushByExternal(final Direction dir) {
 		return !this.isOnShip();
 	}
 
@@ -142,6 +149,15 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		this.energy += consumed;
 		this.setChanged();
 		return consumed;
+	}
+
+	protected abstract Object createPeripheral();
+
+	public final Object getOrCreatePeripheral() {
+		if (this.peripheral == null) {
+			this.peripheral = this.createPeripheral();
+		}
+		return this.peripheral;
 	}
 
 	@Override

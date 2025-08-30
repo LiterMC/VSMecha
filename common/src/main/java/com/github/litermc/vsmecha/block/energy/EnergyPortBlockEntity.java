@@ -1,6 +1,7 @@
 package com.github.litermc.vsmecha.block.energy;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
+import com.github.litermc.vsmecha.compat.computercraft.EnergyBasedPeripheral;
 import com.github.litermc.vsmecha.platform.EnergyInterface;
 import com.github.litermc.vsmecha.platform.PlatformHelper;
 
@@ -77,9 +78,18 @@ public class EnergyPortBlockEntity extends EnergyBasedBlockEntity {
 		return pushed;
 	}
 
-	@Override
-	public boolean canPushByExternal() {
+	public boolean hasDirectionalEnergyStorage() {
 		return true;
+	}
+
+	@Override
+	public boolean canPushByExternal(final Direction dir) {
+		return dir != this.direction;
+	}
+
+	@Override
+	protected Object createPeripheral() {
+		return new EnergyBasedPeripheral.Instance("energy_port", this);
 	}
 
 	@Override

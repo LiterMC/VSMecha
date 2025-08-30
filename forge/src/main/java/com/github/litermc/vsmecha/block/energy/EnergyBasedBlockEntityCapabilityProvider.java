@@ -1,6 +1,7 @@
 package com.github.litermc.vsmecha.block.energy;
 
 import com.github.litermc.vsmecha.Constants;
+import com.github.litermc.vsmecha.compat.CompatMods;
 
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -11,29 +12,50 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 
+import dan200.computercraft.shared.Capabilities;
+
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+
+import java.util.EnumMap;
 
 public final class EnergyBasedBlockEntityCapabilityProvider implements ICapabilityProvider {
 	public static final ResourceLocation CAPABILITY_ID = new ResourceLocation(Constants.MOD_ID, "energy_based");
 
 	private final EnergyBasedBlockEntity be;
 	private final LazyOptional<IEnergyStorage> energyStorage;
+	private final EnumMap<Direction, LazyOptional<IEnergyStorage>> energyStorages;
+	private final LazyOptional<Object> lazyPeripheral;
 
 	private EnergyBasedBlockEntityCapabilityProvider(final EnergyBasedBlockEntity be) {
 		this.be = be;
-		this.energyStorage = LazyOptional.of(() -> new EnergyStorage(this.be));
+		this.energyStorage = LazyOptional.of(() -> new EnergyStorage(this.be, null));
+		this.energyStorages = this.be.hasDirectionalEnergyStorage() ? new EnumMap<>(Direction.class) : null;
+		this.lazyPeripheral = LazyOptional.of(this.be::getOrCreatePeripheral);
 	}
 
 	@Override
 	public <T> LazyOptional<T> getCapability(final Capability<T> cap, final Direction side) {
 		if (cap == ForgeCapabilities.ENERGY) {
-			return this.energyStorage.cast();
+			if (side == null || this.energyStorages == null) {
+				return this.energyStorage.cast();
+			}
+			return this.energyStorages.computeIfAbsent(side, (side0) -> LazyOptional.of(() -> new EnergyStorage(this.be, side0))).cast();
+		}
+		if (CompatMods.COMPUTERCRAFT.isLoaded() && cap == Capabilities.CAPABILITY_PERIPHERAL) {
+			return this.lazyPeripheral.cast();
 		}
 		return LazyOptional.empty();
 	}
 
 	private void invalidate() {
 		this.energyStorage.invalidate();
+		if (this.energyStorages != null) {
+			for (final LazyOptional<IEnergyStorage> energyStorage : this.energyStorages.values()) {
+				energyStorage.invalidate();
+			}
+			this.energyStorages.clear();
+		}
+		this.lazyPeripheral.invalidate();
 	}
 
 	public static void onGatherCapabilities(final AttachCapabilitiesEvent<EnergyBasedBlockEntity> event) {
@@ -44,11 +66,13 @@ public final class EnergyBasedBlockEntityCapabilityProvider implements ICapabili
 
 	private static final class EnergyStorage implements IEnergyStorage {
 		private final EnergyBasedBlockEntity be;
+		private final Direction dir;
 		private final boolean isOnShip;
 		private final boolean isPort;
 
-		private EnergyStorage(final EnergyBasedBlockEntity be) {
+		private EnergyStorage(final EnergyBasedBlockEntity be, final Direction dir) {
 			this.be = be;
+			this.dir = dir;
 			this.isOnShip = VSGameUtilsKt.isBlockInShipyard(be.getLevel(), be.getBlockPos());
 			this.isPort = this.be instanceof EnergyPortBlockEntity;
 		}
@@ -91,11 +115,11 @@ public final class EnergyBasedBlockEntityCapabilityProvider implements ICapabili
 		}
 
 		public boolean canExtract() {
-			return this.be.canPullByExternal() && (this.isPort || this.be.getEnergyOutputLimit() != 0);
+			return this.be.canPullByExternal(this.dir) && (this.isPort || this.be.getEnergyOutputLimit() != 0);
 		}
 
 		public boolean canReceive() {
-			return this.be.canPushByExternal() && (this.isPort || this.be.getEnergyInputLimit() != 0);
+			return this.be.canPushByExternal(this.dir) && (this.isPort || this.be.getEnergyInputLimit() != 0);
 		}
 	}
 }

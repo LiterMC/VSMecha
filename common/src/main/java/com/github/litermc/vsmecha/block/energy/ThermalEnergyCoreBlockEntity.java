@@ -2,9 +2,11 @@ package com.github.litermc.vsmecha.block.energy;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
 import com.github.litermc.vsmecha.api.HeatAPI;
+import com.github.litermc.vsmecha.compat.computercraft.ThermalEnergyCorePeripheral;
 import com.github.litermc.vsmecha.platform.PlatformHelper;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.Container;
@@ -136,13 +138,18 @@ public class ThermalEnergyCoreBlockEntity extends EnergyBasedBlockEntity impleme
 	}
 
 	@Override
-	public boolean canPullByExternal() {
+	public boolean canPullByExternal(final Direction dir) {
 		return !this.isOnShip();
 	}
 
 	@Override
-	public boolean canPushByExternal() {
+	public boolean canPushByExternal(final Direction dir) {
 		return false;
+	}
+
+	@Override
+	protected Object createPeripheral() {
+		return new ThermalEnergyCorePeripheral(this);
 	}
 
 	@Override
