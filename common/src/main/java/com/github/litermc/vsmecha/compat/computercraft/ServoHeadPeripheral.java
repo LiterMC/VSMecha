@@ -10,22 +10,25 @@ import net.minecraft.server.level.ServerLevel;
 
 import dan200.computercraft.api.lua.LuaFunction;
 import dan200.computercraft.api.lua.MethodResult;
+import dan200.computercraft.api.peripheral.IPeripheral;
 
 import org.valkyrienskies.core.api.ships.ServerShip;
 
-public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
-	public ServoPeripheral(final ServoBlockEntity be) {
-		super(be);
+public class ServoHeadPeripheral implements IPeripheral {
+	protected final ServoHeadBlockEntity be;
+
+	public ServoHeadPeripheral(final ServoHeadBlockEntity be) {
+		this.be = be;
 	}
 
 	@Override
 	public String getType() {
-		return "servo";
+		return "servo_head";
 	}
 
-	@LuaFunction
-	public final double getMaxRotateSpeed() {
-		return this.be.getMaxRotateSpeed();
+	@Override
+	public Object getTarget() {
+		return this.be;
 	}
 
 	@LuaFunction
@@ -58,48 +61,14 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 		return modem.getLocalPeripheral().getConnectedName();
 	}
 
-	@LuaFunction
-	public final boolean getAutoAttach() {
-		return this.be.getAutoAttach();
-	}
-
-	@LuaFunction
-	public final void setAutoAttach(final boolean autoAttach) {
-		this.be.setAutoAttach(autoAttach);
-	}
-
-	@LuaFunction(mainThread = true)
-	public final boolean attach() {
-		return this.be.tryAttach();
-	}
-
-	@LuaFunction(mainThread = true)
-	public final boolean detach() {
-		return this.be.detach();
-	}
-
-	@LuaFunction
-	public final boolean isWorking() {
-		return this.be.isWorking();
-	}
-
-	@LuaFunction
-	public final double getCurrentAngle() {
-		return this.be.getCurrentAngle();
-	}
-
-	@LuaFunction
-	public final double getLastWorkingAngle() {
-		return this.be.getLastWorkingAngle();
-	}
-
-	@LuaFunction
-	public final double getTargetAngle() {
-		return this.be.getTargetAngle();
-	}
-
-	@LuaFunction
-	public final void setTargetAngle(final double angle) {
-		this.be.setTargetAngle(angle);
+	@Override
+	public boolean equals(final IPeripheral other) {
+		if (this == other) {
+			return true;
+		}
+		if (other instanceof ServoHeadPeripheral otherPeripheral) {
+			return this.be == otherPeripheral.be;
+		}
+		return false;
 	}
 }

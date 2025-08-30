@@ -1,6 +1,6 @@
 package com.github.litermc.vsmecha.block;
 
-import com.github.litermc.vsmecha.attachment.EnergyNetworkAttachment;
+import com.github.litermc.vsmecha.attachment.ShipNetworkAttachment;
 import com.github.litermc.vsmecha.util.ShipUtil;
 
 import net.minecraft.core.BlockPos;
@@ -52,7 +52,7 @@ public abstract class BaseBlockEntity extends BlockEntity {
 	public void serverTick() {
 		final ServerShip ship = ShipUtil.getServerShip((ServerLevel) (this.getLevel()), this.getBlockPos());
 		if (ship != null) {
-			EnergyNetworkAttachment.get(ship).addBlockEntity(this);
+			ShipNetworkAttachment.get(ship).addBlockEntity(this);
 		}
 	}
 

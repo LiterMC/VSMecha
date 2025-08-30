@@ -1,6 +1,6 @@
 package com.github.litermc.vsmecha;
 
-import com.github.litermc.vsmecha.attachment.EnergyNetworkAttachment;
+import com.github.litermc.vsmecha.attachment.ShipNetworkAttachment;
 import com.github.litermc.vsmecha.attachment.ToolCollisionAttachment;
 import com.github.litermc.vsmecha.util.DestroyUtil;
 import com.github.litermc.vsmecha.util.LevelUtil;
@@ -23,11 +23,11 @@ public final class VSMechaListeners {
 
 	public static void preServerTick(final MinecraftServer server) {
 		TaskUtil.preServerTick();
-		EnergyNetworkAttachment.preServerTick(server);
+		ShipNetworkAttachment.preServerTick(server);
 	}
 
 	public static void postServerTick(final MinecraftServer server) {
-		EnergyNetworkAttachment.postServerTick(server);
+		ShipNetworkAttachment.postServerTick(server);
 		TaskUtil.postServerTick();
 		PredictUtil.postServerTick();
 	}

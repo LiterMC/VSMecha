@@ -1,7 +1,6 @@
 package com.github.litermc.vsmecha.block.energy;
 
 import com.github.litermc.vsmecha.Constants;
-import com.github.litermc.vsmecha.compat.CompatMods;
 
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -11,8 +10,6 @@ import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
-
-import dan200.computercraft.shared.Capabilities;
 
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -24,13 +21,11 @@ public final class EnergyBasedBlockEntityCapabilityProvider implements ICapabili
 	private final EnergyBasedBlockEntity be;
 	private final LazyOptional<IEnergyStorage> energyStorage;
 	private final EnumMap<Direction, LazyOptional<IEnergyStorage>> energyStorages;
-	private final LazyOptional<Object> lazyPeripheral;
 
 	private EnergyBasedBlockEntityCapabilityProvider(final EnergyBasedBlockEntity be) {
 		this.be = be;
 		this.energyStorage = LazyOptional.of(() -> new EnergyStorage(this.be, null));
 		this.energyStorages = this.be.hasDirectionalEnergyStorage() ? new EnumMap<>(Direction.class) : null;
-		this.lazyPeripheral = LazyOptional.of(this.be::getOrCreatePeripheral);
 	}
 
 	@Override
@@ -40,9 +35,6 @@ public final class EnergyBasedBlockEntityCapabilityProvider implements ICapabili
 				return this.energyStorage.cast();
 			}
 			return this.energyStorages.computeIfAbsent(side, (side0) -> LazyOptional.of(() -> new EnergyStorage(this.be, side0))).cast();
-		}
-		if (CompatMods.COMPUTERCRAFT.isLoaded() && cap == Capabilities.CAPABILITY_PERIPHERAL) {
-			return this.lazyPeripheral.cast();
 		}
 		return LazyOptional.empty();
 	}
@@ -55,7 +47,6 @@ public final class EnergyBasedBlockEntityCapabilityProvider implements ICapabili
 			}
 			this.energyStorages.clear();
 		}
-		this.lazyPeripheral.invalidate();
 	}
 
 	public static void onGatherCapabilities(final AttachCapabilitiesEvent<EnergyBasedBlockEntity> event) {

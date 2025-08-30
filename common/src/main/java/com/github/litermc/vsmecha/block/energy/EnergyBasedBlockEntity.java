@@ -1,16 +1,27 @@
 package com.github.litermc.vsmecha.block.energy;
 
 import com.github.litermc.vsmecha.block.BaseBlockEntity;
+import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
+import com.github.litermc.vsmecha.compat.CompatMods;
+import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
+import com.github.litermc.vsmecha.util.TaskUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity implements IEnergyBlockEntity {
+import dan200.computercraft.api.peripheral.IPeripheral;
+import dan200.computercraft.shared.peripheral.modem.wired.WiredModemLocalPeripheral;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity implements IEnergyBlockEntity, IPeripheralBlockEntity {
 	private volatile boolean enabled;
 	private volatile int priority;
 	private int energy = 0;
@@ -19,7 +30,8 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 	int energyOutputRemaining = 0;
 	int energyInputRemaining = 0;
 
-	private Object peripheral = null;
+	private Object /*IPeripheral*/ peripheral = null;
+	public Object /*ShipModemPeripheral*/ modemPeripheral = null;
 
 	protected EnergyBasedBlockEntity(final BlockEntityType<? extends EnergyBasedBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -153,11 +165,17 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 
 	protected abstract Object createPeripheral();
 
+	@Override
 	public final Object getOrCreatePeripheral() {
 		if (this.peripheral == null) {
 			this.peripheral = this.createPeripheral();
 		}
 		return this.peripheral;
+	}
+
+	@Override
+	public final Object getShipModemPeripheral() {
+		return this.modemPeripheral;
 	}
 
 	@Override
@@ -176,6 +194,22 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		data.putInt("Priority", this.priority);
 		data.putInt("Energy", this.energy);
 		data.putInt("EMPTicks", this.empTicks);
+	}
+
+	@Override
+	public void setLevel(final Level level) {
+		super.setLevel(level);
+		if (!level.isClientSide && CompatMods.COMPUTERCRAFT.isLoaded() && this.isOnShip()) {
+			TaskUtil.queueTickEnd(() -> {
+				final ShipModemPeripheral modemPeripheral = new ShipModemPeripheral(this);
+				this.modemPeripheral = modemPeripheral;
+				final WiredModemLocalPeripheral localPeripheral = modemPeripheral.getLocalPeripheral();
+				localPeripheral.attach(level, this.getBlockPos().above(), Direction.DOWN);
+				final Map<String, IPeripheral> peripheralMap = new HashMap<>();
+				localPeripheral.extendMap(peripheralMap);
+				modemPeripheral.getElement().getNode().updatePeripherals(peripheralMap);
+			});
+		}
 	}
 
 	@Override

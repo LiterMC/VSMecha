@@ -1,7 +1,11 @@
 package com.github.litermc.vsmecha.attachment;
 
+import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
 import com.github.litermc.vsmecha.block.energy.IEnergyBlockEntity;
 import com.github.litermc.vsmecha.block.joint.IJointBlockEntity;
+import com.github.litermc.vsmecha.compat.CompatMods;
+import com.github.litermc.vsmecha.compat.computercraft.network.ShipGlobalWiredElement;
+import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
 import com.github.litermc.vsmecha.util.LevelUtil;
 
 import net.minecraft.core.BlockPos;
@@ -18,11 +22,16 @@ import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
+import dan200.computercraft.api.network.wired.WiredNetworkChange;
+import dan200.computercraft.api.network.wired.WiredNode;
+
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -33,24 +42,28 @@ import java.util.TreeSet;
 	getterVisibility = JsonAutoDetect.Visibility.NONE,
 	setterVisibility = JsonAutoDetect.Visibility.NONE
 )
-public final class EnergyNetworkAttachment {
+public final class ShipNetworkAttachment {
 	private final Set<BlockPos> energyBlocks = new HashSet<>();
 	private final Set<BlockPos> joints = new HashSet<>();
+	private final Map<BlockPos, Object> peripherals = new HashMap<>();
 
 	private boolean ticking = false;
 	private long lastTickAvailableEnergy = 0;
 	private long lastTickUsedEnergy = 0;
 	private NavigableSet<PrioEnergyRecord> lastTickedEnergyBlocks = Collections.emptyNavigableSet();
+	private Set<ShipNetworkAttachment> lastTickedNetworks = Collections.emptySet();
 
-	public EnergyNetworkAttachment() {}
+	private Object /*WiredNode*/ globalNode = null;
 
-	public static EnergyNetworkAttachment get(final ServerShip ship) {
-		final EnergyNetworkAttachment attachment = ship.getAttachment(EnergyNetworkAttachment.class);
+	public ShipNetworkAttachment() {}
+
+	public static ShipNetworkAttachment get(final ServerShip ship) {
+		final ShipNetworkAttachment attachment = ship.getAttachment(ShipNetworkAttachment.class);
 		if (attachment != null) {
 			return attachment;
 		}
-		final EnergyNetworkAttachment newAttachment = new EnergyNetworkAttachment();
-		ship.saveAttachment(EnergyNetworkAttachment.class, newAttachment);
+		final ShipNetworkAttachment newAttachment = new ShipNetworkAttachment();
+		ship.saveAttachment(ShipNetworkAttachment.class, newAttachment);
 		return newAttachment;
 	}
 
@@ -58,29 +71,77 @@ public final class EnergyNetworkAttachment {
 		return this.lastTickedEnergyBlocks;
 	}
 
-	public void addBlockEntity(final BlockEntity be) {
-		if (be instanceof IEnergyBlockEntity ebe) {
-			this.energyBlocks.add(be.getBlockPos());
+	private Object getGlobalNode(final ServerLevel level) {
+		if (this.globalNode == null) {
+			this.globalNode = new ShipGlobalWiredElement(level).getNode();
 		}
-		if (be instanceof IJointBlockEntity jbe) {
-			this.joints.add(be.getBlockPos());
+		return this.globalNode;
+	}
+
+	public void addBlockEntity(final BlockEntity be) {
+		final BlockPos pos = be.getBlockPos();
+		if (be instanceof IEnergyBlockEntity) {
+			this.energyBlocks.add(pos);
+		}
+		if (be instanceof IJointBlockEntity) {
+			this.joints.add(pos);
+		}
+		if (
+			CompatMods.COMPUTERCRAFT.isLoaded() &&
+			be instanceof IPeripheralBlockEntity pbe &&
+			pbe.getShipModemPeripheral() instanceof ShipModemPeripheral modem
+		) {
+			if (this.peripherals.put(pos, modem) != modem) {
+				((WiredNode) (this.getGlobalNode((ServerLevel) (be.getLevel())))).connectTo(modem.getElement().getNode());
+			}
 		}
 	}
 
-	public void tick(final ServerLevel level, final LoadedServerShip ship) {
+	private void updateTickedNetworks(final Set<ShipNetworkAttachment> tickedNetworks) {
+		final Set<ShipNetworkAttachment> connectedNetworks = new HashSet<>(tickedNetworks);
+		final Set<ShipNetworkAttachment> disconnectedNetworks = new HashSet<>(this.lastTickedNetworks);
+		connectedNetworks.removeAll(this.lastTickedNetworks);
+		disconnectedNetworks.removeAll(tickedNetworks);
+
+		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
+			final WiredNode selfNode = (WiredNode) (this.globalNode);
+			for (final ShipNetworkAttachment other : connectedNetworks) {
+				selfNode.connectTo((WiredNode) (other.globalNode));
+			}
+			for (final ShipNetworkAttachment other : disconnectedNetworks) {
+				selfNode.disconnectFrom((WiredNode) (other.globalNode));
+			}
+		}
+
+		this.lastTickedNetworks = tickedNetworks;
+	}
+
+	private boolean preTick(final ServerLevel level, final LoadedServerShip ship) {
+		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
+			this.getGlobalNode(level);
+		}
 		if (this.ticking) {
-			return;
+			return false;
 		}
 		this.ticking = true;
+		return true;
+	}
 
-		int ebesPredictSize = 0;
+	public void tick(final ServerLevel level, final LoadedServerShip ship) {
+		if (!this.preTick(level, ship)) {
+			return;
+		}
+
+		boolean hasThingToTick = false;
 		final Set<Long> shipIDs = new HashSet<>();
-		final List<EnergyNetworkAttachment> networks = new ArrayList<>();
+		final List<ShipNetworkAttachment> networks = new ArrayList<>();
 		shipIDs.add(ship.getId());
 		networks.add(this);
 		for (int i = 0; i < networks.size(); i++) {
-			final EnergyNetworkAttachment network = networks.get(i);
-			ebesPredictSize += network.energyBlocks.size();
+			final ShipNetworkAttachment network = networks.get(i);
+			hasThingToTick = hasThingToTick || !network.energyBlocks.isEmpty();
+
+			final Set<ShipNetworkAttachment> networkSet = new HashSet<>();
 			final Iterator<BlockPos> jointIter = network.joints.iterator();
 			while (jointIter.hasNext()) {
 				final BlockPos jointPos = jointIter.next();
@@ -92,33 +153,33 @@ public final class EnergyNetworkAttachment {
 					continue;
 				}
 				final ServerShip otherShip = jbe.getPeerShip();
-				if (otherShip == null) {
+				if (!(otherShip instanceof LoadedServerShip otherLoadedShip)) {
 					continue;
 				}
+				final ShipNetworkAttachment otherNetwork = ShipNetworkAttachment.get(otherShip);
+				networkSet.add(otherNetwork);
 				if (!shipIDs.add(otherShip.getId())) {
 					continue;
 				}
-				final EnergyNetworkAttachment otherNetwork = EnergyNetworkAttachment.get(otherShip);
-				if (otherNetwork.ticking) {
+				if (!otherNetwork.preTick(level, otherLoadedShip)) {
 					// May happen when server just started
 					return;
 				}
-				otherNetwork.ticking = true;
 				networks.add(otherNetwork);
 			}
+			network.updateTickedNetworks(networkSet);
 		}
 
-		if (ebesPredictSize == 0) {
+		if (!hasThingToTick) {
 			return;
 		}
 
 		long tickAvailableEnergy = 0, tickUsedEnergy = 0;
 		final NavigableSet<PrioEnergyRecord> sortedEnergyBlocks = new TreeSet<>();
+
 		for (int i = 0; i < networks.size(); i++) {
-			final EnergyNetworkAttachment network = networks.get(i);
-			if (network.energyBlocks.isEmpty()) {
-				continue;
-			}
+			final ShipNetworkAttachment network = networks.get(i);
+
 			final Iterator<BlockPos> ebeIter = network.energyBlocks.iterator();
 			while (ebeIter.hasNext()) {
 				final BlockPos pos = ebeIter.next();
@@ -130,6 +191,16 @@ public final class EnergyNetworkAttachment {
 				sortedEnergyBlocks.add(new PrioEnergyRecord(ebe, pos, energy));
 				if (energy > 0) {
 					tickAvailableEnergy += energy;
+				}
+			}
+
+			final Iterator<BlockPos> pbeIter = network.peripherals.keySet().iterator();
+			while (pbeIter.hasNext()) {
+				final BlockPos pos = pbeIter.next();
+				if (!(level.getBlockEntity(pos) instanceof IPeripheralBlockEntity)) {
+					final ShipModemPeripheral modem = (ShipModemPeripheral) (network.peripherals.get(pos));
+					pbeIter.remove();
+					((WiredNode) (this.globalNode)).disconnectFrom(modem.getElement().getNode());
 				}
 			}
 		}
@@ -172,7 +243,7 @@ public final class EnergyNetworkAttachment {
 	public static void preServerTick(final MinecraftServer server) {
 		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(server);
 		for (final LoadedServerShip ship : world.getLoadedShips()) {
-			final EnergyNetworkAttachment attachment = ship.getAttachment(EnergyNetworkAttachment.class);
+			final ShipNetworkAttachment attachment = ship.getAttachment(ShipNetworkAttachment.class);
 			if (attachment == null) {
 				continue;
 			}
@@ -183,7 +254,7 @@ public final class EnergyNetworkAttachment {
 	public static void postServerTick(final MinecraftServer server) {
 		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(server);
 		for (final LoadedServerShip ship : world.getLoadedShips()) {
-			final EnergyNetworkAttachment attachment = ship.getAttachment(EnergyNetworkAttachment.class);
+			final ShipNetworkAttachment attachment = ship.getAttachment(ShipNetworkAttachment.class);
 			if (attachment == null) {
 				continue;
 			}

@@ -87,7 +87,11 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	}
 
 	public void setAutoAttach(final boolean autoAttach) {
+		if (this.autoAttach == autoAttach) {
+			return;
+		}
 		this.autoAttach = autoAttach;
+		this.setChanged();
 	}
 
 	public boolean isWorking() {
@@ -147,6 +151,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	@Override
 	public void load(final CompoundTag data) {
 		super.load(data);
+		this.autoAttach = data.getBoolean("AutoAttach");
 		if (data.contains("HeadPos")) {
 			final int[] headPosArr = data.getIntArray("HeadPos");
 			this.pendingHeadPos = new BlockPos(headPosArr[0], headPosArr[1], headPosArr[2]);
@@ -157,6 +162,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	@Override
 	protected void saveShared(final CompoundTag data) {
 		super.saveShared(data);
+		data.putBoolean("AutoAttach", this.autoAttach);
 		final BlockPos headPos = this.headPos != null ? this.headPos : this.pendingHeadPos;
 		if (headPos != null) {
 			data.putIntArray("HeadPos", new int[]{headPos.getX(), headPos.getY(), headPos.getZ()});
@@ -331,7 +337,9 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 				this.setChanged();
 				return;
 			}
-			this.tryAttach();
+			if (this.getAutoAttach()) {
+				this.tryAttach();
+			}
 			return;
 		}
 		double maxSpeed = this.getMaxRotateSpeed();

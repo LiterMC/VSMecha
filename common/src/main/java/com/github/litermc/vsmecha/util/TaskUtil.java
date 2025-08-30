@@ -36,8 +36,16 @@ public final class TaskUtil {
 		}
 	}
 
+	public static void queueTickStart(final Runnable task) {
+		queueTickStart(0, task);
+	}
+
 	public static void queueTickStart(final int delay, final Runnable task) {
 		TICK_START_QUEUE.add(new Task(tick + delay, task));
+	}
+
+	public static void queueTickEnd(final Runnable task) {
+		queueTickStart(0, task);
 	}
 
 	public static void queueTickEnd(final int delay, final Runnable task) {
