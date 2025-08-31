@@ -54,7 +54,7 @@ public class ThermalEnergyCoreBlockEntity extends EnergyBasedBlockEntity impleme
 
 	@Override
 	public int getDefaultEnergyPriority() {
-		return -100;
+		return -1000;
 	}
 
 	@Override

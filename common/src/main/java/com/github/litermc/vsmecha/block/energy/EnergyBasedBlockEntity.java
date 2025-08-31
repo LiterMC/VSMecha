@@ -174,6 +174,10 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 
 	protected abstract Object createPeripheral();
 
+	protected final Object getPeripheral() {
+		return this.peripheral;
+	}
+
 	@Override
 	public final Object getOrCreatePeripheral() {
 		if (this.peripheral == null) {
