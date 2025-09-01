@@ -135,11 +135,21 @@ public abstract class RadarBlockEntity extends EnergyBasedBlockEntity {
 	@Override
 	public void load(final CompoundTag data) {
 		super.load(data);
+		this.radius = data.getDouble("ScanRadius");
+		this.scanRemaning = data.getInt("ScanRemaning");
+		this.autoScan = data.getBoolean("AutoScan");
+		this.queuingScan = data.getBoolean("QueuedScan");
+		this.radarSignatureStrength = data.getInt("RadarSignature");
 	}
 
 	@Override
 	protected void saveAdditional(final CompoundTag data) {
 		super.saveAdditional(data);
+		data.putDouble("ScanRadius", this.radius);
+		data.putInt("ScanRemaning", this.scanRemaning);
+		data.putBoolean("AutoScan", this.autoScan);
+		data.putBoolean("QueuedScan", this.queuingScan);
+		data.putInt("RadarSignature", this.radarSignatureStrength);
 	}
 
 	@Override
