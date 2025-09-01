@@ -67,6 +67,14 @@ public final class ShipNetworkAttachment {
 		return newAttachment;
 	}
 
+	public Set<BlockPos> getEnergyBlocks() {
+		return this.energyBlocks;
+	}
+
+	public Set<BlockPos> getJoints() {
+		return this.joints;
+	}
+
 	public NavigableSet<PrioEnergyRecord> getLastTickedEnergyBlocks() {
 		return this.lastTickedEnergyBlocks;
 	}

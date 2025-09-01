@@ -1,5 +1,10 @@
 package com.github.litermc.vsmecha.util;
 
+import net.minecraft.core.FrontAndTop;
+
+import org.joml.Matrix3d;
+import org.joml.Quaterniond;
+import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 
@@ -52,6 +57,21 @@ public final class MathUtil {
 			vectors[i].mul(Math.sin(radians)).add(proj);
 		}
 		return vectors;
+	}
+
+	private static final Quaterniondc[] FATS = new Quaterniond[FrontAndTop.values().length];
+
+	static {
+		for (final FrontAndTop fat : FrontAndTop.values()) {
+			final Vector3d top = new Vector3d(fat.top().getStepX(), fat.top().getStepY(), fat.top().getStepZ());
+			final Vector3d front = new Vector3d(fat.front().getStepX(), fat.front().getStepY(), fat.front().getStepZ());
+			final Matrix3d mat = new Matrix3d(top.cross(front, new Vector3d()), top, front);
+			FATS[fat.ordinal()] = new Quaterniond().setFromUnnormalized(mat);
+		}
+	}
+
+	public static Quaterniondc getFATOrientation(final FrontAndTop fat) {
+		return FATS[fat.ordinal()];
 	}
 
 	private MathUtil() {}

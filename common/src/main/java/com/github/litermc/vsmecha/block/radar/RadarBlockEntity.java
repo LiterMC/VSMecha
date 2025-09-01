@@ -287,7 +287,7 @@ public abstract class RadarBlockEntity extends EnergyBasedBlockEntity {
 
 	public static class ScanResultWithType extends ScanResult {
 		public static final String TYPE_ENTITY = "entity";
-		public static final String TYPE_VEHICLE = "vehicle";
+		public static final String TYPE_SHIP = "ship";
 
 		private final String type;
 

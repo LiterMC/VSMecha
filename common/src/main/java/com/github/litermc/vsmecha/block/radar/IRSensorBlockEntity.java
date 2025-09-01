@@ -1,9 +1,13 @@
 package com.github.litermc.vsmecha.block.radar;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
+import com.github.litermc.vsmecha.attachment.ShipNetworkAttachment;
+import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
 import com.github.litermc.vsmecha.compat.computercraft.radar.IRSensorPeripheral;
+import com.github.litermc.vsmecha.entity.SmokeEntity;
 import com.github.litermc.vsmecha.util.BlockSourceClipContext;
 import com.github.litermc.vsmecha.util.MathUtil;
+import com.github.litermc.vsmecha.util.RayCastUtil;
 import com.github.litermc.vsmecha.util.ShipUtil;
 
 import net.minecraft.core.BlockPos;
@@ -16,6 +20,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -25,7 +30,10 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBdc;
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 import java.util.ArrayList;
@@ -80,6 +88,7 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 	@Override
 	protected void finalizeScan(final List<ScanResult> results) {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
 		final BlockPos pos = this.getBlockPos();
 		final ServerShip ship = ShipUtil.getServerShip(level, pos);
 
@@ -93,7 +102,10 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 			scanCenter.x - radius, scanCenter.y - height, scanCenter.z - radius,
 			scanCenter.x + radius, scanCenter.y + height, scanCenter.z + radius
 		);
-		final Matrix4d transform = new Matrix4d().set(this.getOrientation().top().getRotation());
+		final Matrix4d transform = new Matrix4d()
+			.translate(scanCenter.x, scanCenter.y, scanCenter.z)
+			.rotate(MathUtil.getFATOrientation(this.getOrientation()))
+			.translate(-scanCenter.x, -scanCenter.y, -scanCenter.z);
 		if (ship != null) {
 			ship.getTransform().getShipToWorld().mul(transform, transform);
 		}
@@ -128,7 +140,10 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 				) {
 					return false;
 				}
-				return this.checkEntity(e, scanCenterWorld, topVec);
+				if (!this.checkPoint(e.position(), scanCenterWorld, topVec)) {
+					return false;
+				}
+				return true;
 			},
 			entities,
 			128
@@ -138,7 +153,51 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 			results.add(this.scanResultFromEntity(entity, scanCenterWorld, transformInv));
 		}
 
-		// TODO: scan ships
+		final double mergeDistSqr = 2 * 2;
+		final List<PointWithCounter> points = new ArrayList<>();
+		for (final Ship s0 : VSGameUtilsKt.getShipsIntersecting(level, scanBoxWorld)) {
+			final LoadedServerShip s = world.getLoadedShips().getById(s0.getId());
+			if (s == null) {
+				continue;
+			}
+			if (
+				!tmpBB.set(s.getWorldAABB())
+					.transform(transformInv)
+					.intersectsAABB(scanBox)
+			) {
+				continue;
+			}
+			for (final BlockPos b : ShipNetworkAttachment.get(s).getEnergyBlocks()) {
+				if (!(level.getBlockEntity(b) instanceof EnergyBasedBlockEntity be)) {
+					continue;
+				}
+				if (be.getHeat() < 12000) {
+					continue;
+				}
+				final Vec3 p = VSGameUtilsKt.toWorldCoordinates(s, b.getCenter());
+				if (this.checkPoint(p, scanCenterWorld, topVec)) {
+					points.add(new PointWithCounter(p));
+				}
+			}
+		}
+
+		for (int i = points.size() - 1; i >= 0; i--) {
+			final PointWithCounter p1 = points.get(i);
+			boolean merged = false;
+			for (int j = i - 1; j >= 0; j--) {
+				final PointWithCounter p2 = points.get(j);
+				if (p1.p.distanceToSqr(p2.p) > mergeDistSqr) {
+					final PointWithCounter p3 = p1.add(p2);
+					points.set(j, points.get(i - 1));
+					points.set(i - 1, p3);
+					merged = true;
+					break;
+				}
+			}
+			if (!merged) {
+				results.add(this.scanResultFromPoint(p1, scanCenterWorld, transformInv));
+			}
+		}
 	}
 
 	@Override
@@ -146,19 +205,19 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 		return new IRSensorPeripheral(this);
 	}
 
-	protected boolean checkEntity(final LivingEntity entity, final Vec3 scanCenter, final Vector3dc topVec) {
-		final Vec3 pos = entity.position();
-		final Vector3d entityDir = new Vector3d(pos.x - scanCenter.x, pos.y - scanCenter.y, pos.z - scanCenter.z);
-		if (Math.abs(topVec.angle(entityDir)) < Math.PI / 4) {
+	protected boolean checkPoint(final Vec3 pos, final Vec3 scanCenter, final Vector3dc topVec) {
+		final Vector3d dir = new Vector3d(pos.x - scanCenter.x, pos.y - scanCenter.y, pos.z - scanCenter.z);
+		if (Math.abs(topVec.angle(dir)) < Math.PI / 4) {
 			// not in sight
 			return false;
 		}
-		if (
-			this.getLevel().clip(
-				new BlockSourceClipContext(scanCenter, pos, ClipContext.Block.VISUAL, ClipContext.Fluid.ANY, this.getBlockPos())
-			)
-				.getType() != HitResult.Type.MISS
-		) {
+		final BlockHitResult hitResult = this.getLevel().clip(
+			new BlockSourceClipContext(scanCenter, pos, ClipContext.Block.VISUAL, ClipContext.Fluid.ANY, this.getBlockPos())
+		);
+		if (hitResult.getType() != HitResult.Type.MISS && hitResult.getLocation().distanceToSqr(pos) > 2 * 2) {
+			return false;
+		}
+		if (RayCastUtil.rayCastEntity(this.getLevel(), scanCenter, pos, (e) -> e instanceof SmokeEntity) != null) {
 			return false;
 		}
 		return true;
@@ -176,6 +235,20 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 		final double width = entity.getBbWidth();
 		final double height = entity.getBbHeight();
 		return this.createScanResultWithError(distance, xRot, yRot, ScanResultWithType.TYPE_ENTITY, width, height);
+	}
+
+	private ScanResultWithSize scanResultFromPoint(final PointWithCounter point, final Vec3 scanCenter, final Matrix4dc transform) {
+		final Vector3d relPos = new Vector3d(point.p.x - scanCenter.x, point.p.y - scanCenter.y, point.p.z - scanCenter.z);
+		final double distance = relPos.length();
+
+		transform.transformDirection(relPos.normalize());
+		final double xRot = Math.asin(-relPos.y);
+		final double yRot = Math.atan2(relPos.x, relPos.z);
+
+		final AABBd projBox = point.box.transform(transform);
+		final double width = projBox.lengthX();
+		final double height = projBox.lengthY();
+		return this.createScanResultWithError(distance, xRot, yRot, ScanResultWithType.TYPE_SHIP, width, height);
 	}
 
 	private ScanResultWithSize createScanResultWithError(
@@ -227,6 +300,17 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 			super.saveAsJSON(data);
 			data.put("width", this.width);
 			data.put("height", this.height);
+		}
+	}
+
+	private record PointWithCounter(Vec3 p, int c, AABBd box) {
+		PointWithCounter(final Vec3 p) {
+			this(p, 1, new AABBd(p.x - 0.5, p.y - 0.5, p.z - 0.5, p.x + 0.5, p.y + 0.5, p.z + 0.5));
+		}
+
+		public PointWithCounter add(final PointWithCounter other) {
+			final int total = this.c + other.c;
+			return new PointWithCounter(this.p.lerp(other.p, other.c / (double) (total)), total, this.box.union(other.box));
 		}
 	}
 }
