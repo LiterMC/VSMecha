@@ -1,0 +1,9 @@
+{
+	"parent": "minecraft:block/cube_bottom_top",
+	"textures": {
+		"bottom": "vsmecha:block/plasma_capacitor_top",
+		"particle": "vsmecha:block/plasma_capacitor_side",
+		"side": "vsmecha:block/plasma_capacitor_side",
+		"top": "vsmecha:block/plasma_capacitor_top"
+	}
+}
