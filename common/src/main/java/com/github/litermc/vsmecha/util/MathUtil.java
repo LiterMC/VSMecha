@@ -3,8 +3,20 @@ package com.github.litermc.vsmecha.util;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 
-public final class VecUtil {
-	private VecUtil() {}
+public final class MathUtil {
+	public static final double PI2 = Math.PI * 2;
+
+	/**
+	 * @return normalized angle in range of (-{@link Math.PI}, {@link Math.PI}]
+	 */
+	public static final double normalizeAngle(double angle) {
+		angle = (angle % PI2 + PI2) % PI2;
+		return angle > Math.PI ? angle - PI2 : angle;
+	}
+
+	public static final double lerpAngle(final double a, final double b, final double alpha) {
+		return normalizeAngle(a + normalizeAngle(b - a) * alpha);
+	}
 
 	public static Vector3d[] generatePlaneVectors(final Vector3dc plane, int iter) {
 		final Vector3d p1 = new Vector3d().orthogonalizeUnit(plane);
@@ -41,4 +53,6 @@ public final class VecUtil {
 		}
 		return vectors;
 	}
+
+	private MathUtil() {}
 }

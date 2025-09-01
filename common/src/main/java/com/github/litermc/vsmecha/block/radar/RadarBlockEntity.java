@@ -5,10 +5,12 @@ import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.radar.RadarPeripheral;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.core.FrontAndTop;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,7 +18,8 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class RadarBlockEntity extends EnergyBasedBlockEntity {
-	private volatile int radius = 0;
+	private final FrontAndTop orientation;
+	private volatile int radius;
 	private volatile int scanRemaning = 0;
 	private volatile boolean autoScan = false;
 	private volatile boolean queuingScan = false;
@@ -25,33 +28,22 @@ public abstract class RadarBlockEntity extends EnergyBasedBlockEntity {
 
 	protected RadarBlockEntity(final BlockEntityType<? extends RadarBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
+		this.orientation = state.getValue(RadarBlock.ORIENTATION);
+		this.radius = this.getMaxScanRadius();
 	}
 
-	@Override
-	public int getMaxHeatCapacity() {
-		return 18000;
+	public FrontAndTop getOrientation() {
+		return this.orientation;
 	}
 
-	@Override
-	public int getDangerousHeatLimit() {
-		return 12000;
-	}
-
-	@Override
-	public int getDefaultEnergyPriority() {
-		return 500;
-	}
-
-	@Override
-	public int getEnergyOutputLimit() {
-		return 0;
-	}
+	public abstract int getMaxScanRadius();
 
 	public int getScanRadius() {
 		return this.radius;
 	}
 
-	public void setScanRadius(final int radius) {
+	public void setScanRadius(int radius) {
+		radius = Math.min(Math.max(radius, 0), this.getMaxScanRadius());
 		if (this.radius == radius) {
 			return;
 		}
@@ -121,6 +113,26 @@ public abstract class RadarBlockEntity extends EnergyBasedBlockEntity {
 	protected abstract Object createPeripheral();
 
 	@Override
+	public int getMaxHeatCapacity() {
+		return 18000;
+	}
+
+	@Override
+	public int getDangerousHeatLimit() {
+		return 12000;
+	}
+
+	@Override
+	public int getDefaultEnergyPriority() {
+		return 500;
+	}
+
+	@Override
+	public int getEnergyOutputLimit() {
+		return 0;
+	}
+
+	@Override
 	public void load(final CompoundTag data) {
 		super.load(data);
 	}
@@ -174,7 +186,61 @@ public abstract class RadarBlockEntity extends EnergyBasedBlockEntity {
 		}
 	}
 
-	public class ScanResult {
+	/*** begin utility methods ***/
+
+	public static double mapValue(
+		final double value,
+		final double oldMin, final double oldMax,
+		final double newMin, final double newMax
+	) {
+		return (value - oldMin) / (oldMax - oldMin) * (newMax - newMin) + newMin;
+	}
+
+	public static double generateRandom(final Object hashSource, final double min, final double max) {
+		return (((double) (hashSource.hashCode())) / Integer.MAX_VALUE + 1) / 2 * (max - min) + min;
+	}
+
+	public static double generateRandom(final int hashCode, final double min, final double max) {
+		return (((double) (hashCode)) / Integer.MAX_VALUE + 1) / 2 * (max - min) + min;
+	}
+
+	public static double applyError(final double value, final double error) {
+		final double e = value * error;
+		return generateRandom(value, value - e, value + e);
+	}
+
+	public static double closestDist(final AABB box, final Vec3 pos) {
+		final double x = pos.x;
+		final double y = pos.y;
+		final double z = pos.z;
+		double dist = 0;
+		if (x < box.minX) {
+			final double d = box.minX - x;
+			dist += d * d;
+		} else if (x > box.maxX) {
+			final double d = x - box.maxX;
+			dist += d * d;
+		}
+		if (y < box.minY) {
+			final double d = box.minY - y;
+			dist += d * d;
+		} else if (y > box.maxY) {
+			final double d = y - box.maxY;
+			dist += d * d;
+		}
+		if (z < box.minZ) {
+			final double d = box.minZ - z;
+			dist += d * d;
+		} else if (z > box.maxZ) {
+			final double d = z - box.maxZ;
+			dist += d * d;
+		}
+		return Math.sqrt(dist);
+	}
+
+	/*** end utility methods ***/
+
+	public static class ScanResult {
 		private final double distance;
 		private final double xRot, yRot;
 
@@ -206,6 +272,32 @@ public abstract class RadarBlockEntity extends EnergyBasedBlockEntity {
 			final Map<String, Object> data = new HashMap<>();
 			this.saveAsJSON(data);
 			return data;
+		}
+	}
+
+	public static class ScanResultWithType extends ScanResult {
+		public static final String TYPE_ENTITY = "entity";
+		public static final String TYPE_VEHICLE = "vehicle";
+
+		private final String type;
+
+		public ScanResultWithType(
+			final double distance,
+			final double xRot,
+			final double yRot,
+			final String type
+		) {
+			super(distance, xRot, yRot);
+			this.type = type;
+		}
+
+		public final String getType() {
+			return this.type;
+		}
+
+		public void saveAsJSON(final Map<String, Object> data) {
+			super.saveAsJSON(data);
+			data.put("type", this.type);
 		}
 	}
 }

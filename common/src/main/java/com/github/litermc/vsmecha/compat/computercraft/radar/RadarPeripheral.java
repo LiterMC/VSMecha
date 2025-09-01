@@ -38,6 +38,11 @@ public abstract class RadarPeripheral<T extends RadarBlockEntity> extends Energy
 	}
 
 	@LuaFunction
+	public final int getMaxRadius() {
+		return this.be.getMaxScanRadius();
+	}
+
+	@LuaFunction
 	public final int getRadius() {
 		return this.be.getScanRadius();
 	}

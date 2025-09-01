@@ -1,6 +1,6 @@
 package com.github.litermc.vsmecha.shape;
 
-import com.github.litermc.vsmecha.util.VecUtil;
+import com.github.litermc.vsmecha.util.MathUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -38,7 +38,7 @@ public class PickAxeShape implements IToolShape {
 				return false;
 			}
 		}
-		final Vector3d[] plane = VecUtil.generatePlaneVectors(reactionDir, 2);
+		final Vector3d[] plane = MathUtil.generatePlaneVectors(reactionDir, 2);
 		int count = 0;
 		for (int i = 0; i < plane.length; i++) {
 			if (!ShapeUtil.isAirBlock(level, testPos.set(plane[i]).mul(3).add(pos))) {
@@ -49,7 +49,7 @@ public class PickAxeShape implements IToolShape {
 			}
 		}
 		count = 0;
-		VecUtil.planeVectorsToAngled(reactionDir, 70 * Math.PI / 180, plane);
+		MathUtil.planeVectorsToAngled(reactionDir, 70 * Math.PI / 180, plane);
 		for (int i = 0; i < plane.length; i++) {
 			if (!ShapeUtil.isAirBlock(level, testPos.set(plane[i]).mul(3.5).add(pos))) {
 				count++;

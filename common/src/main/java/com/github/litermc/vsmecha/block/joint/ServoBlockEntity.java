@@ -6,6 +6,7 @@ import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.ServoPeripheral;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
+import com.github.litermc.vsmecha.util.MathUtil;
 import com.github.litermc.vsmecha.util.ShipUtil;
 
 import net.minecraft.core.BlockPos;
@@ -119,7 +120,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	}
 
 	public void setTargetAngle(double angle) {
-		angle = normalizeAngle(angle);
+		angle = MathUtil.normalizeAngle(angle);
 		if (this.targetAngle == angle) {
 			return;
 		}
@@ -164,7 +165,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 			final int[] headPosArr = data.getIntArray("HeadPos");
 			this.pendingHeadPos = new BlockPos(headPosArr[0], headPosArr[1], headPosArr[2]);
 		}
-		this.targetAngle = normalizeAngle(data.getDouble("TargetAngle"));
+		this.targetAngle = MathUtil.normalizeAngle(data.getDouble("TargetAngle"));
 	}
 
 	@Override
@@ -189,7 +190,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 			.mul(new Quaterniond(dir.getRotation()).invert().mul(new Quaterniond(head.getDirection().getOpposite().getRotation())))
 			.normalize();
 		final double dot = dirVec.dot(relRot.x, relRot.y, relRot.z);
-		return normalizeAngle(-2 * Math.atan2(dot, relRot.w));
+		return MathUtil.normalizeAngle(-2 * Math.atan2(dot, relRot.w));
 	}
 
 	@Override
@@ -406,18 +407,18 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		}
 
 		if (canWork) {
-			double diff = normalizeAngle(targetAngle - angle);
+			double diff = MathUtil.normalizeAngle(targetAngle - angle);
 			if (Math.abs(diff) < 0.01) {
 				diff = 0;
 			}
 			if (diff != 0 || !wasWorking) {
 				double newWorkingAngle = Math.abs(diff) <= maxSpeed
 					? targetAngle
-					: normalizeAngle(angle + (diff > 0 ? maxSpeed : -maxSpeed));
+					: MathUtil.normalizeAngle(angle + (diff > 0 ? maxSpeed : -maxSpeed));
 				if (wasWorking) {
 					final double lastWorkingAngle = this.workingAngle;
-					newWorkingAngle = lerpAngle(newWorkingAngle, lastWorkingAngle, 0.5);
-					final int heat = ((int) (Math.abs(normalizeAngle(lastWorkingAngle - angle)) / Math.PI * 100)) * 10;
+					newWorkingAngle = MathUtil.lerpAngle(newWorkingAngle, lastWorkingAngle, 0.5);
+					final int heat = ((int) (Math.abs(MathUtil.normalizeAngle(lastWorkingAngle - angle)) / Math.PI * 100)) * 10;
 					this.transferHeat(heat);
 				}
 				this.workingAngle = newWorkingAngle;
@@ -428,20 +429,6 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 			world.updateConstraint(this.servoInfo.rotateConstraintId, this.createFreeRotationConstraint());
 			this.working = false;
 		}
-	}
-
-	private static final double PI2 = Math.PI * 2;
-
-	/**
-	 * @return normalized angle in range of (-{@link Math.PI}, {@link Math.PI}]
-	 */
-	private static final double normalizeAngle(double angle) {
-		angle = (angle % PI2 + PI2) % PI2;
-		return angle > Math.PI ? angle - PI2 : angle;
-	}
-
-	private static final double lerpAngle(final double a, final double b, final double alpha) {
-		return normalizeAngle(a + normalizeAngle(b - a) * alpha);
 	}
 
 	static final class ServoInfo {

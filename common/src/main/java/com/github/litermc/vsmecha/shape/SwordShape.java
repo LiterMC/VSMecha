@@ -1,6 +1,6 @@
 package com.github.litermc.vsmecha.shape;
 
-import com.github.litermc.vsmecha.util.VecUtil;
+import com.github.litermc.vsmecha.util.MathUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -43,7 +43,7 @@ public class SwordShape implements IToolShape {
 		if (!ShapeUtil.isAirBlock(level, testPos)) {
 			return false;
 		}
-		final Vector3d[] plane = VecUtil.generatePlaneVectors(reactionDir, 2);
+		final Vector3d[] plane = MathUtil.generatePlaneVectors(reactionDir, 2);
 		final boolean[] flags = new boolean[plane.length];
 		final Set<BlockPos> planeBlocks = new HashSet<>();
 		for (int i = 0; i < plane.length; i++) {
@@ -55,7 +55,7 @@ public class SwordShape implements IToolShape {
 			}
 		}
 		if (planeBlocks.size() < 2) {
-			VecUtil.planeVectorsToAngled(reactionDir, 45 * Math.PI / 180, plane);
+			MathUtil.planeVectorsToAngled(reactionDir, 45 * Math.PI / 180, plane);
 			for (int i = 0; i < plane.length; i++) {
 				testPos.set(plane[i]).add(pos);
 				final BlockPos bpos = BlockPos.containing(testPos.x, testPos.y, testPos.z);
