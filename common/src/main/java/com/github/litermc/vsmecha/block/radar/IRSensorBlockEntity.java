@@ -192,9 +192,8 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 			distance = applyError(distance, ERROR);
 			xRot += MathUtil.normalizeAngle(generateRandom(Double.hashCode(xRot), -ANGLE_ERROR, ANGLE_ERROR));
 			yRot += MathUtil.normalizeAngle(generateRandom(Double.hashCode(yRot), -ANGLE_ERROR, ANGLE_ERROR));
-			final double minSize = Math.min(width, height);
-			width = applyError(minSize, ERROR);
-			height = applyError(minSize + 1e-6, ERROR);
+			width = applyError(width, ERROR);
+			height = applyError(height, ERROR);
 		}
 		return new ScanResultWithSize(distance, xRot, yRot, type, width, height);
 	}
