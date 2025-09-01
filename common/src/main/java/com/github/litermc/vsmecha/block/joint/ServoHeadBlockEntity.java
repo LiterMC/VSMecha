@@ -1,6 +1,7 @@
 package com.github.litermc.vsmecha.block.joint;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
+import com.github.litermc.vsmecha.attachment.ShipNetworkAttachment;
 import com.github.litermc.vsmecha.block.BaseBlockEntity;
 import com.github.litermc.vsmecha.block.IJointPeripheralBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
@@ -95,18 +96,25 @@ public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlock
 	@Override
 	public void setLevel(final Level level) {
 		super.setLevel(level);
-		if (!level.isClientSide && CompatMods.COMPUTERCRAFT.isLoaded()) {
-			final ShipModemPeripheral modemPeripheral = new ShipModemPeripheral(this);
-			this.modemPeripheral = modemPeripheral;
-			final WiredModemLocalPeripheral localPeripheral = modemPeripheral.getLocalPeripheral();
-			final WiredNode node = modemPeripheral.getElement().getNode();
-			TaskUtil.queueTickEnd(() -> {
-				localPeripheral.attach(level, this.getBlockPos().above(), Direction.DOWN);
-				final Map<String, IPeripheral> peripheralMap = new HashMap<>();
-				localPeripheral.extendMap(peripheralMap);
-				node.updatePeripherals(peripheralMap);
-			});
+		if (!(level instanceof ServerLevel serverLevel) || !CompatMods.COMPUTERCRAFT.isLoaded()) {
+			return;
+		}
+		final BlockPos pos = this.getBlockPos();
+		final ShipModemPeripheral modemPeripheral = new ShipModemPeripheral(this);
+		this.modemPeripheral = modemPeripheral;
+		final WiredModemLocalPeripheral localPeripheral = modemPeripheral.getLocalPeripheral();
+		TaskUtil.queueTickEnd(() -> {
+			localPeripheral.attach(serverLevel, pos.above(), Direction.DOWN);
+			final Map<String, IPeripheral> peripheralMap = new HashMap<>();
+			localPeripheral.extendMap(peripheralMap);
+			modemPeripheral.getElement().getNode().updatePeripherals(peripheralMap);
+		});
+		if (this instanceof IJointPeripheralBlockEntity) {
 			this.queueRefreshCables();
+		}
+		final ServerShip ship = ShipUtil.getServerShip(serverLevel, pos);
+		if (ship != null) {
+			ShipNetworkAttachment.get(ship).registerPeripheral(this);
 		}
 	}
 

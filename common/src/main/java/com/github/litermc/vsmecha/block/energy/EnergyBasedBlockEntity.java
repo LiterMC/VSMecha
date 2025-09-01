@@ -1,19 +1,23 @@
 package com.github.litermc.vsmecha.block.energy;
 
+import com.github.litermc.vsmecha.attachment.ShipNetworkAttachment;
 import com.github.litermc.vsmecha.block.BaseBlockEntity;
 import com.github.litermc.vsmecha.block.IJointPeripheralBlockEntity;
 import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
+import com.github.litermc.vsmecha.util.ShipUtil;
 import com.github.litermc.vsmecha.util.TaskUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
+import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 import dan200.computercraft.api.network.wired.WiredElement;
@@ -29,6 +33,7 @@ import java.util.Map;
 public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity implements IEnergyBlockEntity, IPeripheralBlockEntity {
 	private volatile boolean enabled;
 	private volatile int priority;
+	private volatile String name = null;
 	private int energy = 0;
 	private int empTicks = 0;
 
@@ -91,6 +96,25 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 			return;
 		}
 		this.priority = priority;
+		this.setChanged();
+	}
+
+	public String getName() {
+		return this.name;
+	}
+
+	public void setName(String name) {
+		if (name != null && name.isEmpty()) {
+			name = null;
+		}
+		if (this.name == null) {
+			if (name == null) {
+				return;
+			}
+		} else if (this.name.equals(name)) {
+			return;
+		}
+		this.name = name;
 		this.setChanged();
 	}
 
@@ -196,6 +220,10 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		super.load(data);
 		this.enabled = data.getBoolean("Enabled");
 		this.priority = data.getInt("Priority");
+		this.name = data.getString("Name");
+		if (this.name.isEmpty()) {
+			this.name = null;
+		}
 		this.energy = data.getInt("Energy");
 		this.empTicks = data.getInt("EMPTicks");
 	}
@@ -205,6 +233,9 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		super.saveAdditional(data);
 		data.putBoolean("Enabled", this.enabled);
 		data.putInt("Priority", this.priority);
+		if (this.name != null) {
+			data.putString("Name", this.name);
+		}
 		data.putInt("Energy", this.energy);
 		data.putInt("EMPTicks", this.empTicks);
 	}
@@ -212,19 +243,25 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 	@Override
 	public void setLevel(final Level level) {
 		super.setLevel(level);
-		if (!level.isClientSide && CompatMods.COMPUTERCRAFT.isLoaded() && (this instanceof IJointPeripheralBlockEntity || this.isOnShip())) {
-			final ShipModemPeripheral modemPeripheral = new ShipModemPeripheral(this);
-			this.modemPeripheral = modemPeripheral;
-			final WiredModemLocalPeripheral localPeripheral = modemPeripheral.getLocalPeripheral();
-			TaskUtil.queueTickEnd(() -> {
-				localPeripheral.attach(level, this.getBlockPos().above(), Direction.DOWN);
-				final Map<String, IPeripheral> peripheralMap = new HashMap<>();
-				localPeripheral.extendMap(peripheralMap);
-				modemPeripheral.getElement().getNode().updatePeripherals(peripheralMap);
-			});
-			if (this instanceof IJointPeripheralBlockEntity) {
-				this.queueRefreshCables();
-			}
+		if (!(level instanceof ServerLevel serverLevel) || !CompatMods.COMPUTERCRAFT.isLoaded() || !(this instanceof IJointPeripheralBlockEntity || this.isOnShip())) {
+			return;
+		}
+		final BlockPos pos = this.getBlockPos();
+		final ShipModemPeripheral modemPeripheral = new ShipModemPeripheral(this);
+		this.modemPeripheral = modemPeripheral;
+		final WiredModemLocalPeripheral localPeripheral = modemPeripheral.getLocalPeripheral();
+		TaskUtil.queueTickEnd(() -> {
+			localPeripheral.attach(serverLevel, pos.above(), Direction.DOWN);
+			final Map<String, IPeripheral> peripheralMap = new HashMap<>();
+			localPeripheral.extendMap(peripheralMap);
+			modemPeripheral.getElement().getNode().updatePeripherals(peripheralMap);
+		});
+		if (this instanceof IJointPeripheralBlockEntity) {
+			this.queueRefreshCables();
+		}
+		final ServerShip ship = ShipUtil.getServerShip(serverLevel, pos);
+		if (ship != null) {
+			ShipNetworkAttachment.get(ship).registerPeripheral(this);
 		}
 	}
 
