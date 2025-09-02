@@ -4,6 +4,7 @@ import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
 
 import dan200.computercraft.api.lua.LuaFunction;
 
+import java.util.Optional;
 import java.util.Set;
 
 public abstract class EnergyBasedPeripheral<T extends EnergyBasedBlockEntity> extends BasePeripheral<T> {
@@ -51,6 +52,16 @@ public abstract class EnergyBasedPeripheral<T extends EnergyBasedBlockEntity> ex
 	@LuaFunction
 	public final void setEnergyPriority(final int priority) {
 		this.be.setEnergyPriority(priority);
+	}
+
+	@LuaFunction
+	public final String getName() {
+		return this.be.getName();
+	}
+
+	@LuaFunction
+	public final void setName(final Optional<String> name) {
+		this.be.setName(name.orElse(null));
 	}
 
 	@LuaFunction(mainThread = true)

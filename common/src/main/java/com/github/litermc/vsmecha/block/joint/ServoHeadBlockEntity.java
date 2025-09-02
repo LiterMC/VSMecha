@@ -4,6 +4,7 @@ import com.github.litermc.vsmecha.VSMechaRegistry;
 import com.github.litermc.vsmecha.attachment.ShipNetworkAttachment;
 import com.github.litermc.vsmecha.block.BaseBlockEntity;
 import com.github.litermc.vsmecha.block.IJointPeripheralBlockEntity;
+import com.github.litermc.vsmecha.block.IPhysTickableBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.ServoHeadPeripheral;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
@@ -18,6 +19,8 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
+import org.valkyrienskies.core.api.ships.PhysShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -31,10 +34,12 @@ import dan200.computercraft.shared.platform.PlatformHelper;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
-public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlockEntity, IJointPeripheralBlockEntity {
+public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlockEntity, IJointPeripheralBlockEntity, IPhysTickableBlockEntity {
 	private final Direction direction;
 	BlockPos basePos = null;
+	private ServoBlockEntity sbe = null;
 	ServoBlockEntity.ServoInfo servoInfo = null;
 
 	private Object /*IPeripheral*/ peripheral = null;
@@ -113,8 +118,8 @@ public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlock
 			this.queueRefreshCables();
 		}
 		final ServerShip ship = ShipUtil.getServerShip(serverLevel, pos);
-		if (ship != null) {
-			ShipNetworkAttachment.get(ship).registerPeripheral(this);
+		if (ship instanceof final LoadedServerShip loadedShip) {
+			ShipNetworkAttachment.get(loadedShip).registerPeripheral(this);
 		}
 	}
 
@@ -141,13 +146,29 @@ public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlock
 
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
-		if (level.getBlockEntity(this.basePos) instanceof ServoBlockEntity sbe && sbe.servoInfo == this.servoInfo) {
+		if (level.getBlockEntity(this.basePos) instanceof final ServoBlockEntity sbe && sbe.servoInfo == this.servoInfo) {
+			this.sbe = sbe;
 			return;
 		}
+		this.sbe = null;
 		this.servoInfo.detach(world);
 		this.servoInfo.detached = true;
 		this.servoInfo = null;
 		this.basePos = null;
+	}
+
+	@Override
+	public void physicsTick(final PhysShip ship, final Function<Long, PhysShip> lookup) {
+		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final BlockPos basePos = this.basePos;
+		if (basePos == null || VSGameUtilsKt.isBlockInShipyard(level, basePos)) {
+			return;
+		}
+		final ServoBlockEntity sbe = this.sbe;
+		if (sbe == null) {
+			return;
+		}
+		sbe.stepServo(null, ship, 1.0 / 60);
 	}
 
 	private void queueRefreshCables() {

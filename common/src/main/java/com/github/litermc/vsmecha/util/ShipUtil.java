@@ -9,6 +9,7 @@ import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
+import org.valkyrienskies.core.api.ships.PhysShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -65,6 +66,12 @@ public final class ShipUtil {
 	 * @return rotation {@code other} relative to {@code ship}
 	 */
 	public static Quaterniond getShipRelativeRotation(final ServerShip ship, final ServerShip other) {
+		final Quaterniond baseRot = ship == null ? new Quaterniond() : new Quaterniond(ship.getTransform().getShipToWorldRotation());
+		final Quaterniondc otherRot = other == null ? ZERO_QUAT : other.getTransform().getShipToWorldRotation();
+		return baseRot.invert().mul(otherRot);
+	}
+
+	public static Quaterniond getShipRelativeRotation(final PhysShip ship, final PhysShip other) {
 		final Quaterniond baseRot = ship == null ? new Quaterniond() : new Quaterniond(ship.getTransform().getShipToWorldRotation());
 		final Quaterniondc otherRot = other == null ? ZERO_QUAT : other.getTransform().getShipToWorldRotation();
 		return baseRot.invert().mul(otherRot);

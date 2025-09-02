@@ -2,6 +2,7 @@ package com.github.litermc.vsmecha.block.joint;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
 import com.github.litermc.vsmecha.block.IJointPeripheralBlockEntity;
+import com.github.litermc.vsmecha.block.IPhysTickableBlockEntity;
 import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.ServoPeripheral;
@@ -23,6 +24,7 @@ import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
+import org.valkyrienskies.core.api.ships.PhysShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.apigame.constraints.VSAttachmentConstraint;
 import org.valkyrienskies.core.apigame.constraints.VSConstraint;
@@ -30,28 +32,41 @@ import org.valkyrienskies.core.apigame.constraints.VSFixedOrientationConstraint;
 import org.valkyrienskies.core.apigame.constraints.VSHingeOrientationConstraint;
 import org.valkyrienskies.core.apigame.constraints.VSHingeTargetAngleConstraint;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
+import org.valkyrienskies.core.impl.game.ships.PhysInertia;
+import org.valkyrienskies.core.impl.game.ships.PhysShipImpl;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 import dan200.computercraft.api.network.wired.WiredNode;
 
-public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttachableBlockEntity, IJointPeripheralBlockEntity {
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+
+public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttachableBlockEntity, IJointPeripheralBlockEntity, IPhysTickableBlockEntity {
 	private static final Vector3dc ZERO_VEC3 = new Vector3d();
 	private static final Quaterniondc FREEROT_QUAT = new Quaterniond(new AxisAngle4d(Math.PI / 2, 0, 0, 1));
 	private static final double ATTACH_COMPLIANCE = 0;
-	private static final double ROTATE_COMPLIANCE = 1e-11;
+	private static final double ATTACH_MAX_FORCE = Double.POSITIVE_INFINITY;
+	// private static final double ROTATE_COMPLIANCE = 0;
+	private static final double ROTATE_MAX_FORCE = 1e13;
 
 	private final Direction direction;
 	private BlockPos headPos = null;
+	private volatile Quaterniondc relOrientation = null;
 	BlockPos pendingHeadPos = null;
 	ServoInfo servoInfo = null;
+
 	private volatile boolean autoAttach = true;
 	private volatile boolean working = false;
 	private volatile double angle = 0;
-	private volatile double workingAngle = 0;
+	// private volatile double workingAngle = 0;
 	private volatile double targetAngle = 0;
+	private volatile AnglePID posPID = new AnglePID(3, 0, 4, this.getMaxRotateSpeed());
+	private volatile VelocityPID velPID = new VelocityPID(3e5, 1e2, 0, ROTATE_MAX_FORCE);
 
 	private int autoAttachCD = 20;
 	private Object headNode = null;
+
+	private final AtomicInteger heatBuilt = new AtomicInteger();
 
 	public ServoBlockEntity(final BlockEntityType<? extends ServoBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -63,10 +78,10 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 	}
 
 	/**
-	 * @return max rotation speed in rad/t
+	 * @return max rotation speed in rad/s
 	 */
 	public double getMaxRotateSpeed() {
-		return 10 * Math.PI / 180;
+		return 15 * Math.PI / 180;
 	}
 
 	public Direction getDirection() {
@@ -88,7 +103,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 
 	@Override
 	public boolean canTransferEnergy() {
-		return this.isEnabled();
+		return true;
 	}
 
 	public boolean getAutoAttach() {
@@ -111,10 +126,6 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		return this.angle;
 	}
 
-	public double getLastWorkingAngle() {
-		return this.workingAngle;
-	}
-
 	public double getTargetAngle() {
 		return this.targetAngle;
 	}
@@ -126,6 +137,22 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		}
 		this.targetAngle = angle;
 		this.setChanged();
+	}
+
+	public PID getPosPID() {
+		return this.posPID;
+	}
+
+	public PID getVelPID() {
+		return this.velPID;
+	}
+
+	public void setPosPID(final double p, final double i, final double d) {
+		this.posPID = new AnglePID(p, i, d, this.getMaxRotateSpeed());
+	}
+
+	public void setVelPID(final double p, final double i, final double d) {
+		this.velPID = new VelocityPID(p, i, d, ROTATE_MAX_FORCE);
 	}
 
 	public int getEnergyConsumption() {
@@ -181,16 +208,21 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 
 	private double readAngle() {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
-		final ServoHeadBlockEntity head = (ServoHeadBlockEntity) (level.getBlockEntity(this.headPos));
 		final ServerShip ship = ShipUtil.getServerShip(level, this.getBlockPos());
 		final ServerShip other = ShipUtil.getServerShip(level, this.headPos);
 		final Direction dir = this.getDirection();
 		final Vector3dc dirVec = new Vector3d(dir.getStepX(), dir.getStepY(), dir.getStepZ());
-		final Quaterniond relRot = ShipUtil.getShipRelativeRotation(ship, other)
-			.mul(new Quaterniond(dir.getRotation()).invert().mul(new Quaterniond(head.getDirection().getOpposite().getRotation())))
-			.normalize();
+		final Quaterniond relRot = ShipUtil.getShipRelativeRotation(ship, other).mul(this.relOrientation).normalize();
 		final double dot = dirVec.dot(relRot.x, relRot.y, relRot.z);
-		return MathUtil.normalizeAngle(-2 * Math.atan2(dot, relRot.w));
+		return MathUtil.normalizeAngle(2 * Math.atan2(dot, relRot.w));
+	}
+
+	private double readAngleInPhy(final PhysShip selfShip, final PhysShip otherShip) {
+		final Direction dir = this.getDirection();
+		final Vector3dc dirVec = new Vector3d(dir.getStepX(), dir.getStepY(), dir.getStepZ());
+		final Quaterniond relRot = ShipUtil.getShipRelativeRotation(selfShip, otherShip).mul(this.relOrientation).normalize();
+		final double dot = dirVec.dot(relRot.x, relRot.y, relRot.z);
+		return MathUtil.normalizeAngle(2 * Math.atan2(dot, relRot.w));
 	}
 
 	@Override
@@ -220,10 +252,13 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		}
 
 		this.headPos = otherPos;
+		this.relOrientation = new Quaterniond(this.getDirection().getRotation())
+			.invert()
+			.mul(new Quaterniond(head.getDirection().getOpposite().getRotation()));
 
 		final double angle = this.readAngle();
 		this.angle = angle;
-		this.workingAngle = angle;
+		// this.workingAngle = angle;
 
 		final VSAttachmentConstraint attachConstraint1 = new VSAttachmentConstraint(
 			selfId,
@@ -231,15 +266,15 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 			ATTACH_COMPLIANCE,
 			new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5),
 			new Vector3d(otherPos.getX() + 0.5, otherPos.getY() + 0.5, otherPos.getZ() + 0.5),
-			Double.POSITIVE_INFINITY,
+			ATTACH_MAX_FORCE,
 			0
 		);
 		final VSConstraint attachConstraint2 = this.createFreeRotationConstraint();
-		final VSConstraint rotateConstraint = this.createRotationConstraint();
+		// final VSConstraint rotateConstraint = this.createRotationConstraint();
 		this.servoInfo = new ServoInfo();
 		this.servoInfo.attachConstraint1Id = world.createNewConstraint(attachConstraint1);
 		this.servoInfo.attachConstraint2Id = world.createNewConstraint(attachConstraint2);
-		this.servoInfo.rotateConstraintId = world.createNewConstraint(rotateConstraint);
+		// this.servoInfo.rotateConstraintId = world.createNewConstraint(rotateConstraint);
 
 		head.basePos = pos;
 		head.servoInfo = this.servoInfo;
@@ -248,21 +283,21 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 		return true;
 	}
 
-	protected VSConstraint createRotationConstraint() {
-		final ServerLevel level = (ServerLevel) (this.getLevel());
-		final ServoHeadBlockEntity head = (ServoHeadBlockEntity) (level.getBlockEntity(this.headPos));
-		final Quaterniondc dir = new Quaterniond(this.getDirection().getRotation());
-		final Quaterniond rotation = new Quaterniond(head.getDirection().getOpposite().getRotation())
-			.mul(new Quaterniond(new AxisAngle4d(this.workingAngle, 0, 1, 0)));
-		return new VSFixedOrientationConstraint(
-			ShipUtil.getShipOrDimId(level, this.getBlockPos()),
-			ShipUtil.getShipOrDimId(level, this.headPos),
-			ROTATE_COMPLIANCE,
-			dir,
-			rotation,
-			Double.POSITIVE_INFINITY
-		);
-	}
+	// protected VSConstraint createRotationConstraint() {
+	// 	final ServerLevel level = (ServerLevel) (this.getLevel());
+	// 	final ServoHeadBlockEntity head = (ServoHeadBlockEntity) (level.getBlockEntity(this.headPos));
+	// 	final Quaterniondc dir = new Quaterniond(this.getDirection().getRotation());
+	// 	final Quaterniond rotation = new Quaterniond(head.getDirection().getOpposite().getRotation())
+	// 		.mul(new Quaterniond(new AxisAngle4d(this.workingAngle, 0, 1, 0)));
+	// 	return new VSFixedOrientationConstraint(
+	// 		ShipUtil.getShipOrDimId(level, this.getBlockPos()),
+	// 		ShipUtil.getShipOrDimId(level, this.headPos),
+	// 		ROTATE_COMPLIANCE,
+	// 		dir,
+	// 		rotation,
+	// 		ROTATE_MAX_FORCE
+	// 	);
+	// }
 
 	protected VSConstraint createFreeRotationConstraint() {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
@@ -275,7 +310,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 			ATTACH_COMPLIANCE,
 			baseRot,
 			otherRot,
-			Double.POSITIVE_INFINITY
+			ATTACH_MAX_FORCE
 		);
 	}
 
@@ -356,6 +391,7 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 			}
 		}
 		if (!this.isAttached()) {
+			this.working = false;
 			if (this.pendingHeadPos != null) {
 				this.attachTo(this.pendingHeadPos);
 				this.pendingHeadPos = null;
@@ -405,42 +441,193 @@ public class ServoBlockEntity extends EnergyBasedBlockEntity implements IAttacha
 				this.setEnergyStored(newEnergy);
 			}
 		}
+		this.working = canWork;
 
-		if (canWork) {
-			double diff = MathUtil.normalizeAngle(targetAngle - angle);
-			if (Math.abs(diff) < 0.01) {
-				diff = 0;
-			}
-			if (diff != 0 || !wasWorking) {
-				double newWorkingAngle = Math.abs(diff) <= maxSpeed
-					? targetAngle
-					: MathUtil.normalizeAngle(angle + (diff > 0 ? maxSpeed : -maxSpeed));
-				if (wasWorking) {
-					final double lastWorkingAngle = this.workingAngle;
-					newWorkingAngle = MathUtil.lerpAngle(newWorkingAngle, lastWorkingAngle, 0.5);
-					final int heat = ((int) (Math.abs(MathUtil.normalizeAngle(lastWorkingAngle - angle)) / Math.PI * 100)) * 10;
-					this.transferHeat(heat);
-				}
-				this.workingAngle = newWorkingAngle;
-				world.updateConstraint(this.servoInfo.rotateConstraintId, this.createRotationConstraint());
-				this.working = true;
-			}
-		} else if (wasWorking) {
-			world.updateConstraint(this.servoInfo.rotateConstraintId, this.createFreeRotationConstraint());
-			this.working = false;
+		// if (canWork) {
+		// 	double diff = MathUtil.normalizeAngle(targetAngle - angle);
+		// 	if (Math.abs(diff) < 0.01) {
+		// 		diff = 0;
+		// 	}
+		// 	if (diff != 0 || !wasWorking) {
+		// 		double newWorkingAngle = Math.abs(diff) <= maxSpeed
+		// 			? targetAngle
+		// 			: MathUtil.normalizeAngle(angle + (diff > 0 ? maxSpeed : -maxSpeed));
+		// 		if (wasWorking) {
+		// 			final double lastWorkingAngle = this.workingAngle;
+		// 			newWorkingAngle = MathUtil.lerpAngle(newWorkingAngle, lastWorkingAngle, 0.5);
+		// 			final int heat = ((int) (Math.abs(MathUtil.normalizeAngle(lastWorkingAngle - angle)) / Math.PI * 100)) * 10;
+		// 			this.transferHeat(heat);
+		// 		}
+		// 		this.workingAngle = newWorkingAngle;
+		// 		world.updateConstraint(this.servoInfo.rotateConstraintId, this.createRotationConstraint());
+		// 		this.working = true;
+		// 	}
+		// } else if (wasWorking) {
+		// 	world.updateConstraint(this.servoInfo.rotateConstraintId, this.createFreeRotationConstraint());
+		// 	this.working = false;
+		// }
+		this.transferHeat(this.heatBuilt.getAndSet(0));
+	}
+
+	@Override
+	public void physicsTick(final PhysShip ship, final Function<Long, PhysShip> lookup) {
+		if (!this.working) {
+			return;
+		}
+
+		final ServerLevel level = (ServerLevel) (this.getLevel());
+		final BlockPos headPos = this.headPos;
+		if (headPos == null) {
+			return;
+		}
+		final ServerShip otherSShip = VSGameUtilsKt.getShipManagingPos(level, headPos);
+		final PhysShip otherShip = otherSShip == null ? null : lookup.apply(otherSShip.getId());
+
+		this.stepServo(ship, otherShip, 1.0 / 60);
+	}
+
+	void stepServo(final PhysShip ship, final PhysShip otherShip, final double dt) {
+		if (!this.working) {
+			return;
+		}
+
+		final Direction dir = this.getDirection();
+		final Vector3d axis = new Vector3d(dir.getStepX(), dir.getStepY(), dir.getStepZ());
+		if (ship != null) {
+			ship.getTransform().getShipToWorld().transformDirection(axis);
+		}
+		final double angle = this.readAngleInPhy(ship, otherShip);
+
+		final AnglePID posPID = this.posPID;
+		final VelocityPID velPID = this.velPID;
+
+		final double targetVelocity = posPID.update(angle, this.getTargetAngle(), dt);
+		final double velocity = posPID.getVelocity();
+		final double force = velPID.update(velocity, targetVelocity, dt);
+		this.heatBuilt.addAndGet((int) (force / ROTATE_MAX_FORCE * 200));
+		final Vector3d torque = axis.mul(force, new Vector3d());
+
+		if (otherShip != null) {
+			otherShip.applyInvariantTorque(torque);
+		}
+		if (ship != null) {
+			ship.applyInvariantTorque(torque.negate(new Vector3d()));
 		}
 	}
 
 	static final class ServoInfo {
 		boolean detached = false;
 		int attachConstraint1Id, attachConstraint2Id;
-		int rotateConstraintId;
+		// int rotateConstraintId;
 
 		void detach(final ServerShipWorldCore world) {
 			world.removeConstraint(this.attachConstraint1Id);
 			world.removeConstraint(this.attachConstraint2Id);
-			world.removeConstraint(this.rotateConstraintId);
+			// world.removeConstraint(this.rotateConstraintId);
 			this.detached = true;
+		}
+	}
+
+	public interface PID {
+		double getKp();
+		double getKi();
+		double getKd();
+	}
+
+	private static final class AnglePID implements PID {
+		private final double kp;
+		private final double ki;
+		private final double kd;
+		private final double maxOutput;
+		private double lastAngle = 0;
+		private double velocity = 0;
+		private double integral = 0;
+
+		public AnglePID(final double kp, final double ki, final double kd, final double maxOutput) {
+			this.kp = kp;
+			this.ki = ki;
+			this.kd = kd;
+			this.maxOutput = maxOutput;
+		}
+
+		@Override
+		public final double getKp() {
+			return this.kp;
+		}
+
+		@Override
+		public final double getKi() {
+			return this.ki;
+		}
+
+		@Override
+		public final double getKd() {
+			return this.kd;
+		}
+
+		public double update(final double currentAngle, final double targetAngle, final double dt) {
+			final double error = MathUtil.normalizeAngle(targetAngle - currentAngle);
+			final double integral = this.integral + error * dt;
+			final double velocity = MathUtil.normalizeAngle(currentAngle - this.lastAngle) / dt;
+			double output = this.kp * error + this.ki * integral - this.kd * velocity;
+			this.lastAngle = currentAngle;
+			this.velocity = velocity;
+			if (Math.abs(output) > this.maxOutput) {
+				output = Math.signum(output) * this.maxOutput;
+			} else {
+				this.integral = integral;
+			}
+			return output;
+		}
+
+		public double getVelocity() {
+			return this.velocity;
+		}
+	}
+
+	private static final class VelocityPID implements PID {
+		private final double kp;
+		private final double ki;
+		private final double kd;
+		private final double maxOutput;
+		private final double intLimit;
+		private double lastVel = 0;
+		private double integral = 0;
+
+		public VelocityPID(final double kp, final double ki, final double kd, final double maxOutput) {
+			this.kp = kp;
+			this.ki = ki;
+			this.kd = kd;
+			this.maxOutput = maxOutput;
+			this.intLimit = maxOutput / Math.max(ki, 1e-6);
+		}
+
+		@Override
+		public final double getKp() {
+			return this.kp;
+		}
+
+		@Override
+		public final double getKi() {
+			return this.ki;
+		}
+
+		@Override
+		public final double getKd() {
+			return this.kd;
+		}
+
+		public double update(final double currentVelocity, final double targetVelocity, final double dt) {
+			final double error = targetVelocity - currentVelocity;
+			final double integral = Math.min(Math.max(this.integral + error * dt, -this.intLimit), this.intLimit);
+			double output = this.kp * error + this.ki * integral - this.kd * (currentVelocity - this.lastVel) / dt;
+			this.lastVel = currentVelocity;
+			if (Math.abs(output) > this.maxOutput) {
+				output = Math.signum(output) * this.maxOutput;
+			} else {
+				this.integral = integral;
+			}
+			return output;
 		}
 	}
 }

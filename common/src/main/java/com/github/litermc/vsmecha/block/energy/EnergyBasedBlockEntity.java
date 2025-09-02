@@ -17,6 +17,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -260,8 +261,8 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 			this.queueRefreshCables();
 		}
 		final ServerShip ship = ShipUtil.getServerShip(serverLevel, pos);
-		if (ship != null) {
-			ShipNetworkAttachment.get(ship).registerPeripheral(this);
+		if (ship instanceof final LoadedServerShip loadedShip) {
+			ShipNetworkAttachment.get(loadedShip).registerPeripheral(this);
 		}
 	}
 

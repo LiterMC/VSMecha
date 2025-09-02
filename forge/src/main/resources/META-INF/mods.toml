@@ -31,5 +31,5 @@ side = "BOTH"
 modId = "valkyrienskies"
 mandatory = true
 versionRange = "[2.2,)"
-ordering = "BEFORE"
+ordering = "AFTER"
 side = "BOTH"

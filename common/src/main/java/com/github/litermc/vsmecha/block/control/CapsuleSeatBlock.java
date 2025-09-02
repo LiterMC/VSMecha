@@ -72,5 +72,6 @@ public class CapsuleSeatBlock extends EnergyBasedBlock {
 		if (!isMoving && level.getBlockEntity(pos) instanceof CapsuleSeatBlockEntity be) {
 			be.onRemove();
 		}
+		super.onRemove(state, level, pos, newState, isMoving);
 	}
 }

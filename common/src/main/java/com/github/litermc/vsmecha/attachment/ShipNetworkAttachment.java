@@ -1,6 +1,7 @@
 package com.github.litermc.vsmecha.attachment;
 
 import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
+import com.github.litermc.vsmecha.block.IPhysTickableBlockEntity;
 import com.github.litermc.vsmecha.block.energy.IEnergyBlockEntity;
 import com.github.litermc.vsmecha.block.joint.IJointBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
@@ -14,11 +15,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSetter;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
+import org.valkyrienskies.core.api.ships.PhysShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.api.ships.ShipForcesInducer;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -35,6 +35,9 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import kotlin.jvm.functions.Function1;
 
 @JsonAutoDetect(
 	fieldVisibility = JsonAutoDetect.Visibility.NONE,
@@ -42,9 +45,10 @@ import java.util.TreeSet;
 	getterVisibility = JsonAutoDetect.Visibility.NONE,
 	setterVisibility = JsonAutoDetect.Visibility.NONE
 )
-public final class ShipNetworkAttachment {
+public final class ShipNetworkAttachment implements ShipForcesInducer {
 	private final Set<BlockPos> energyBlocks = new HashSet<>();
 	private final Set<BlockPos> joints = new HashSet<>();
+	private final Map<BlockPos, IPhysTickableBlockEntity> physTickers = new ConcurrentHashMap<>();
 	private final Map<BlockPos, Object> peripherals = new HashMap<>();
 
 	private boolean ticking = false;
@@ -57,13 +61,13 @@ public final class ShipNetworkAttachment {
 
 	public ShipNetworkAttachment() {}
 
-	public static ShipNetworkAttachment get(final ServerShip ship) {
+	public static ShipNetworkAttachment get(final LoadedServerShip ship) {
 		final ShipNetworkAttachment attachment = ship.getAttachment(ShipNetworkAttachment.class);
 		if (attachment != null) {
 			return attachment;
 		}
 		final ShipNetworkAttachment newAttachment = new ShipNetworkAttachment();
-		ship.saveAttachment(ShipNetworkAttachment.class, newAttachment);
+		ship.setAttachment(ShipNetworkAttachment.class, newAttachment);
 		return newAttachment;
 	}
 
@@ -94,12 +98,17 @@ public final class ShipNetworkAttachment {
 		if (be instanceof IJointBlockEntity) {
 			this.joints.add(pos);
 		}
+		if (be instanceof IPhysTickableBlockEntity ticker) {
+			this.physTickers.put(pos, ticker);
+		}
+	}
+
+	public void registerPeripheral(final BlockEntity be) {
 		if (
-			CompatMods.COMPUTERCRAFT.isLoaded() &&
 			be instanceof IPeripheralBlockEntity pbe &&
 			pbe.getShipModemPeripheral() instanceof ShipModemPeripheral modem
 		) {
-			if (this.peripherals.put(pos, modem) != modem) {
+			if (this.peripherals.put(be.getBlockPos(), modem) != modem) {
 				((WiredNode) (this.getGlobalNode((ServerLevel) (be.getLevel())))).connectTo(modem.getElement().getNode());
 			}
 		}
@@ -112,6 +121,9 @@ public final class ShipNetworkAttachment {
 		}
 		if (be instanceof IJointBlockEntity) {
 			this.joints.remove(pos);
+		}
+		if (be instanceof IPhysTickableBlockEntity) {
+			this.physTickers.remove(pos);
 		}
 		if (CompatMods.COMPUTERCRAFT.isLoaded() && be instanceof IPeripheralBlockEntity) {
 			this.peripherals.remove(be);
@@ -137,6 +149,23 @@ public final class ShipNetworkAttachment {
 	// 	this.lastTickedNetworks = tickedNetworks;
 	// }
 
+	@Override
+	public void applyForces(final PhysShip ship) {}
+
+	@Override
+	public void applyForcesAndLookupPhysShips(final PhysShip ship, final Function1<? super Long, ? extends PhysShip> lookup0) {
+		final Function<Long, PhysShip> lookup = (id) -> lookup0.invoke(id);
+		final Iterator<IPhysTickableBlockEntity> iterator = this.physTickers.values().iterator();
+		while (iterator.hasNext()) {
+			final IPhysTickableBlockEntity ticker = iterator.next();
+			if (((BlockEntity) (ticker)).isRemoved()) {
+				iterator.remove();
+				continue;
+			}
+			ticker.physicsTick(ship, lookup);
+		}
+	}
+
 	private boolean preTick(final ServerLevel level, final LoadedServerShip ship) {
 		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
 			this.getGlobalNode(level);
@@ -160,7 +189,7 @@ public final class ShipNetworkAttachment {
 		networks.add(this);
 		for (int i = 0; i < networks.size(); i++) {
 			final ShipNetworkAttachment network = networks.get(i);
-			hasThingToTick = hasThingToTick || !network.energyBlocks.isEmpty();
+			hasThingToTick = hasThingToTick || !network.energyBlocks.isEmpty() || !network.peripherals.isEmpty();
 
 			// final Set<ShipNetworkAttachment> networkSet = new HashSet<>();
 			final Iterator<BlockPos> jointIter = network.joints.iterator();
@@ -170,21 +199,20 @@ public final class ShipNetworkAttachment {
 					jointIter.remove();
 					continue;
 				}
-				final ServerShip otherShip = jbe.getPeerShip();
-				if (!(otherShip instanceof LoadedServerShip otherLoadedShip)) {
+				if (!(jbe.getPeerShip() instanceof LoadedServerShip otherLoadedShip)) {
 					continue;
 				}
-				final ShipNetworkAttachment otherNetwork = ShipNetworkAttachment.get(otherShip);
+				final ShipNetworkAttachment otherNetwork = ShipNetworkAttachment.get(otherLoadedShip);
 				// networkSet.add(otherNetwork);
 				if (!jbe.canTransferEnergy()) {
 					continue;
 				}
-				if (!shipIDs.add(otherShip.getId())) {
+				if (!shipIDs.add(otherLoadedShip.getId())) {
 					continue;
 				}
 				if (!otherNetwork.preTick(level, otherLoadedShip)) {
 					// May happen when server just started
-					return;
+					continue;
 				}
 				networks.add(otherNetwork);
 			}
@@ -198,9 +226,7 @@ public final class ShipNetworkAttachment {
 		long tickAvailableEnergy = 0, tickUsedEnergy = 0;
 		final NavigableSet<PrioEnergyRecord> sortedEnergyBlocks = new TreeSet<>();
 
-		for (int i = 0; i < networks.size(); i++) {
-			final ShipNetworkAttachment network = networks.get(i);
-
+		for (final ShipNetworkAttachment network : networks) {
 			final Iterator<BlockPos> ebeIter = network.energyBlocks.iterator();
 			while (ebeIter.hasNext()) {
 				final BlockPos pos = ebeIter.next();

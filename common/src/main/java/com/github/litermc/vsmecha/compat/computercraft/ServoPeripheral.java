@@ -89,11 +89,6 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 	}
 
 	@LuaFunction
-	public final double getLastWorkingAngle() {
-		return this.be.getLastWorkingAngle();
-	}
-
-	@LuaFunction
 	public final double getTargetAngle() {
 		return this.be.getTargetAngle();
 	}
@@ -101,5 +96,27 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 	@LuaFunction
 	public final void setTargetAngle(final double angle) {
 		this.be.setTargetAngle(angle);
+	}
+
+	@LuaFunction
+	public final MethodResult getPosPID() {
+		final ServoBlockEntity.PID pid = this.be.getPosPID();
+		return MethodResult.of(pid.getKp(), pid.getKi(), pid.getKd());
+	}
+
+	@LuaFunction
+	public final void setPosPID(final double p, final double i, final double d) {
+		this.be.setPosPID(p, i, d);
+	}
+
+	@LuaFunction
+	public final MethodResult getVelPID() {
+		final ServoBlockEntity.PID pid = this.be.getVelPID();
+		return MethodResult.of(pid.getKp(), pid.getKi(), pid.getKd());
+	}
+
+	@LuaFunction
+	public final void setVelPID(final double p, final double i, final double d) {
+		this.be.setVelPID(p, i, d);
 	}
 }

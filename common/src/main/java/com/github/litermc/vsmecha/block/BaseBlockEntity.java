@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 
 public abstract class BaseBlockEntity extends BlockEntity {
@@ -54,8 +55,8 @@ public abstract class BaseBlockEntity extends BlockEntity {
 		super.setLevel(level);
 		if (level instanceof ServerLevel serverLevel) {
 			final ServerShip ship = ShipUtil.getServerShip(serverLevel, this.getBlockPos());
-			if (ship != null) {
-				ShipNetworkAttachment.get(ship).addBlockEntity(this);
+			if (ship instanceof final LoadedServerShip loadedShip) {
+				ShipNetworkAttachment.get(loadedShip).addBlockEntity(this);
 			}
 		}
 	}
@@ -65,8 +66,8 @@ public abstract class BaseBlockEntity extends BlockEntity {
 		super.setRemoved();
 		if (this.getLevel() instanceof ServerLevel level) {
 			final ServerShip ship = ShipUtil.getServerShip(level, this.getBlockPos());
-			if (ship != null) {
-				ShipNetworkAttachment.get(ship).removeBlockEntity(this);
+			if (ship instanceof final LoadedServerShip loadedShip) {
+				ShipNetworkAttachment.get(loadedShip).removeBlockEntity(this);
 			}
 		}
 	}

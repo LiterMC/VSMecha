@@ -17,6 +17,8 @@ import com.github.litermc.vsmecha.block.joint.ServoBlock;
 import com.github.litermc.vsmecha.block.joint.ServoBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ServoHeadBlock;
 import com.github.litermc.vsmecha.block.joint.ServoHeadBlockEntity;
+import com.github.litermc.vsmecha.block.radar.IFFBeaconBlock;
+import com.github.litermc.vsmecha.block.radar.IFFBeaconBlockEntity;
 import com.github.litermc.vsmecha.block.radar.IRSensorBlockEntity;
 import com.github.litermc.vsmecha.block.radar.RadarBlock;
 import com.github.litermc.vsmecha.block.tool.StainedToolBlock;
@@ -112,6 +114,7 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(properties()));
 		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(properties().noCollission()));
 
+		public static final RegistryEntry<IFFBeaconBlock> IFF_BEACON = REGISTRY.register("iff_beacon", () -> new IFFBeaconBlock(properties()));
 		public static final RegistryEntry<RadarBlock> IR_SENSOR = REGISTRY.register("ir_sensor", () -> new RadarBlock(properties()) {
 			@Override
 			public IRSensorBlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
@@ -183,6 +186,7 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<BlockEntityType<ServoBlockEntity>> SERVO = of("servo", ServoBlockEntity::new, Blocks.SERVO);
 		public static final RegistryEntry<BlockEntityType<ServoHeadBlockEntity>> SERVO_HEAD = of("servo_head", ServoHeadBlockEntity::new, Blocks.SERVO_HEAD);
 
+		public static final RegistryEntry<BlockEntityType<IFFBeaconBlockEntity>> IFF_BEACON = of("iff_beacon", IFFBeaconBlockEntity::new, Blocks.IFF_BEACON);
 		public static final RegistryEntry<BlockEntityType<IRSensorBlockEntity>> IR_SENSOR = of("ir_sensor", IRSensorBlockEntity::new, Blocks.IR_SENSOR);
 
 		public static final RegistryEntry<BlockEntityType<ToolBaseBlockEntity>> TOOL_BASE =
@@ -257,6 +261,10 @@ public final class VSMechaRegistry {
 			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON))
 		);
 
+		public static final RegistryEntry<BlockItem> IFF_BEACON = ofBlock(
+			Blocks.IFF_BEACON,
+			(block, props) -> new BlockItem(block, props.stacksTo(1))
+		);
 		public static final RegistryEntry<BlockItem> IR_SENSOR = ofBlock(
 			Blocks.IR_SENSOR,
 			(block, props) -> new BlockItem(block, props)
