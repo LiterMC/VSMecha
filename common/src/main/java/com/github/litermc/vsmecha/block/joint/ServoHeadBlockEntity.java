@@ -39,7 +39,7 @@ import java.util.function.Function;
 public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlockEntity, IJointPeripheralBlockEntity, IPhysTickableBlockEntity {
 	private final Direction direction;
 	BlockPos basePos = null;
-	private ServoBlockEntity sbe = null;
+	private volatile ServoBlockEntity sbe = null;
 	ServoBlockEntity.ServoInfo servoInfo = null;
 
 	private Object /*IPeripheral*/ peripheral = null;
@@ -165,7 +165,7 @@ public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlock
 			return;
 		}
 		final ServoBlockEntity sbe = this.sbe;
-		if (sbe == null && !sbe.isRemoved()) {
+		if (sbe == null || sbe.isRemoved()) {
 			return;
 		}
 		sbe.stepServo(null, ship, 1.0 / 60);

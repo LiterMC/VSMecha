@@ -47,7 +47,7 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 
 	private final Direction direction;
 	private BlockPos headPos = null;
-	private Direction headDir = null;
+	private Direction headDirOppo = null;
 	private volatile Quaterniondc relOrientation = null;
 	private BlockPos pendingHeadPos = null;
 	ServoInfo servoInfo = null;
@@ -165,12 +165,22 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		return this.velPID;
 	}
 
-	public void setPosPID(final double p, final double i, final double d) {
+	private void setPosPIDNoSave(final double p, final double i, final double d) {
 		this.posPID = new AnglePID(p, i, d, this.getMaxRotateSpeed());
 	}
 
-	public void setVelPID(final double p, final double i, final double d) {
+	public void setPosPID(final double p, final double i, final double d) {
+		this.setPosPIDNoSave(p, i, d);
+		this.setChanged();
+	}
+
+	private void setVelPIDNoSave(final double p, final double i, final double d) {
 		this.velPID = new VelocityPID(p, i, d, ROTATE_MAX_FORCE);
+	}
+
+	public void setVelPID(final double p, final double i, final double d) {
+		this.setVelPIDNoSave(p, i, d);
+		this.setChanged();
 	}
 
 	// public double getFeedForwardAlpha() {
@@ -225,11 +235,16 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		if (data.contains("HeadPos")) {
 			final int[] headPosArr = data.getIntArray("HeadPos");
 			this.pendingHeadPos = new BlockPos(headPosArr[0], headPosArr[1], headPosArr[2]);
-			this.headDir = Direction.values()[data.getByte("HeadDir")];
+			this.headDirOppo = Direction.values()[data.getByte("HeadDir")];
 		}
 		this.positionMode = data.getBoolean("PositionMode");
 		this.targetAngle = MathUtil.normalizeAngle(data.getDouble("TargetAngle"));
 		this.targetVelocity = data.getDouble("TargetVelocity");
+		final CompoundTag posPID = data.getCompound("PosPID");
+		this.setPosPIDNoSave(posPID.getDouble("P"), posPID.getDouble("I"), posPID.getDouble("D"));
+		final CompoundTag velPID = data.getCompound("VelPID");
+		this.setVelPIDNoSave(velPID.getDouble("P"), velPID.getDouble("I"), velPID.getDouble("D"));
+		this.feedForwardForce = data.getDouble("FeedForwardForce");
 	}
 
 	@Override
@@ -239,11 +254,24 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		final BlockPos headPos = this.headPos != null ? this.headPos : this.pendingHeadPos;
 		if (headPos != null) {
 			data.putIntArray("HeadPos", new int[]{headPos.getX(), headPos.getY(), headPos.getZ()});
-			data.putByte("HeadDir", (byte) (this.headDir.ordinal()));
+			data.putByte("HeadDir", (byte) (this.headDirOppo.ordinal()));
 		}
 		data.putBoolean("PositionMode", this.positionMode);
 		data.putDouble("TargetAngle", this.targetAngle);
 		data.putDouble("TargetVelocity", this.targetVelocity);
+		final PID posPID = this.getPosPID();
+		final CompoundTag posPIDTag = new CompoundTag();
+		posPIDTag.putDouble("P", posPID.getKp());
+		posPIDTag.putDouble("I", posPID.getKi());
+		posPIDTag.putDouble("D", posPID.getKd());
+		data.put("PosPID", posPIDTag);
+		final PID velPID = this.getVelPID();
+		final CompoundTag velPIDTag = new CompoundTag();
+		velPIDTag.putDouble("P", velPID.getKp());
+		velPIDTag.putDouble("I", velPID.getKi());
+		velPIDTag.putDouble("D", velPID.getKd());
+		data.put("VelPID", velPIDTag);
+		data.putDouble("FeedForwardForce", this.feedForwardForce);
 	}
 
 	private double readAngle() {
@@ -292,12 +320,12 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		}
 
 		this.headPos = otherPos;
-		this.headDir = head.getDirection();
+		this.headDirOppo = head.getDirection().getOpposite();
 		this.setChanged();
 
 		this.relOrientation = new Quaterniond(this.getDirection().getRotation())
 			.invert()
-			.mul(new Quaterniond(this.headDir.getOpposite().getRotation()));
+			.mul(new Quaterniond(this.headDirOppo.getRotation()));
 
 		final double angle = this.readAngle();
 		this.angle = angle;
@@ -321,9 +349,8 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 
 	protected VSConstraint createFreeRotationConstraint() {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
-		final ServoHeadBlockEntity head = (ServoHeadBlockEntity) (level.getBlockEntity(this.headPos));
 		final Quaterniondc baseRot = new Quaterniond(this.getDirection().getRotation()).mul(FREEROT_QUAT);
-		final Quaterniond otherRot = new Quaterniond(head.getDirection().getOpposite().getRotation()).mul(FREEROT_QUAT);
+		final Quaterniond otherRot = new Quaterniond(this.headDirOppo.getRotation()).mul(FREEROT_QUAT);
 		return new VSHingeOrientationConstraint(
 			ShipUtil.getShipOrDimId(level, this.getBlockPos()),
 			ShipUtil.getShipOrDimId(level, this.headPos),
@@ -359,6 +386,7 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		this.servoInfo.detach(world);
 		this.servoInfo = null;
 		this.headPos = null;
+		this.headDirOppo = null;
 		this.autoAttachCD = 20 * 3;
 		this.setChanged();
 		return true;
@@ -419,7 +447,7 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 
 		this.relOrientation = new Quaterniond(this.getDirection().getRotation())
 			.invert()
-			.mul(new Quaterniond(this.headDir.getOpposite().getRotation()));
+			.mul(new Quaterniond(this.headDirOppo.getRotation()));
 
 		final double angle = this.readAngle();
 		this.angle = angle;
@@ -544,14 +572,14 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		}
 
 		final int positionLoopScale = 1; // TODO: should run position PID slower?
-		final boolean shouldRunPos = this.physTick % positionLoopScale == 0;
+		final boolean shouldRunPos = this.positionMode && (this.physTick % positionLoopScale == 0);
 		this.physTick++;
 
 		final Matrix4d transform = ship == null ? new Matrix4d() : new Matrix4d(ship.getTransform().getShipToWorld());
 		final Direction dir = this.getDirection();
 		final Vector3dc axis = transform.transformDirection(new Vector3d(dir.getStepX(), dir.getStepY(), dir.getStepZ()));
 		final double currentAngle = this.readAngleInPhy(ship, otherShip);
-		final double currentVelocity = this.lastAngle - currentAngle;
+		final double currentVelocity = MathUtil.normalizeAngle(currentAngle - this.lastAngle) / dt;
 		this.lastAngle = currentAngle;
 
 		final AnglePID posPID = this.posPID;
@@ -560,7 +588,7 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		final double fff = this.feedForwardForce;
 
 		double targetVelocity = this.targetVelocity;
-		if (shouldRunPos && this.positionMode) {
+		if (shouldRunPos) {
 			targetVelocity = posPID.update(currentAngle, this.getTargetAngle(), dt * positionLoopScale);
 			this.targetVelocity = targetVelocity;
 		}
