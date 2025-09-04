@@ -34,7 +34,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IAttachableBlockEntity {
 	private static final double ATTACH_COMPLIANCE = 0;
 	private static final double ATTACH_MAX_FORCE = Double.POSITIVE_INFINITY;
-	private static final double EXTEND_LOCK_AREA = 8.0 / 16;
+	private static final double EXTEND_LOCK_AREA = 20.0 / 16;
 
 	private final Direction direction;
 	private BlockPos attachingBlock = null;

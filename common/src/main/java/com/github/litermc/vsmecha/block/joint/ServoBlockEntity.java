@@ -575,7 +575,7 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 			return;
 		}
 
-		final int positionLoopScale = 1; // TODO: should run position PID slower?
+		final int positionLoopScale = 3; // TODO: should run position PID slower?
 		final boolean shouldRunPos = this.positionMode && (this.physTick % positionLoopScale == 0);
 		this.physTick++;
 
