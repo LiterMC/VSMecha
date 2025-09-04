@@ -89,6 +89,16 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 	}
 
 	@LuaFunction
+	public final boolean getPositionMode() {
+		return this.be.getPositionMode();
+	}
+
+	@LuaFunction
+	public final void setPositionMode(final boolean positionMode) {
+		this.be.setPositionMode(positionMode);
+	}
+
+	@LuaFunction
 	public final double getTargetAngle() {
 		return this.be.getTargetAngle();
 	}
@@ -96,6 +106,16 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 	@LuaFunction
 	public final void setTargetAngle(final double angle) {
 		this.be.setTargetAngle(angle);
+	}
+
+	@LuaFunction
+	public final double getTargetVelocity() {
+		return this.be.getTargetVelocity();
+	}
+
+	@LuaFunction
+	public final void setTargetVelocity(final double velocity) {
+		this.be.setTargetVelocity(velocity);
 	}
 
 	@LuaFunction
@@ -118,5 +138,15 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 	@LuaFunction
 	public final void setVelPID(final double p, final double i, final double d) {
 		this.be.setVelPID(p, i, d);
+	}
+
+	@LuaFunction
+	public final double getFeedForwardForce() {
+		return this.be.getFeedForwardForce();
+	}
+
+	@LuaFunction
+	public final void setFeedForwardForce(final double force) {
+		this.be.setFeedForwardForce(force);
 	}
 }

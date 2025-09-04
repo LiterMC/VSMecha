@@ -56,22 +56,8 @@ public class CapsuleSeatBlock extends EnergyBasedBlock {
 		final BlockHitResult hit
 	) {
 		if (!(level.getBlockEntity(pos) instanceof CapsuleSeatBlockEntity be)) {
-			return InteractionResult.PASS;
+			return super.use(state, level, pos, player, hand, hit);
 		}
 		return be.onUse(player, hit) ? InteractionResult.sidedSuccess(level.isClientSide) : InteractionResult.PASS;
-	}
-
-	@Override
-	public void onRemove(
-		final BlockState state,
-		final Level level,
-		final BlockPos pos,
-		final BlockState newState,
-		final boolean isMoving
-	) {
-		if (!isMoving && level.getBlockEntity(pos) instanceof CapsuleSeatBlockEntity be) {
-			be.onRemove();
-		}
-		super.onRemove(state, level, pos, newState, isMoving);
 	}
 }

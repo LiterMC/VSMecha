@@ -255,7 +255,8 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 		return true;
 	}
 
-	public void onRemove() {
+	@Override
+	public void beforeRemove() {
 		if (!(this.getLevel() instanceof ServerLevel level)) {
 			return;
 		}

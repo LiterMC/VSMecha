@@ -234,11 +234,16 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		super.saveAdditional(data);
 		data.putBoolean("Enabled", this.enabled);
 		data.putInt("Priority", this.priority);
+		data.putInt("Energy", this.energy);
+		data.putInt("EMPTicks", this.empTicks);
+	}
+
+	@Override
+	protected void saveShared(final CompoundTag data) {
+		super.saveShared(data);
 		if (this.name != null) {
 			data.putString("Name", this.name);
 		}
-		data.putInt("Energy", this.energy);
-		data.putInt("EMPTicks", this.empTicks);
 	}
 
 	@Override

@@ -165,7 +165,7 @@ public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlock
 			return;
 		}
 		final ServoBlockEntity sbe = this.sbe;
-		if (sbe == null) {
+		if (sbe == null && !sbe.isRemoved()) {
 			return;
 		}
 		sbe.stepServo(null, ship, 1.0 / 60);

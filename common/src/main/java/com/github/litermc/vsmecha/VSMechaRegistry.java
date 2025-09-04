@@ -13,6 +13,8 @@ import com.github.litermc.vsmecha.block.energy.PlasmaCapacitorBlock;
 import com.github.litermc.vsmecha.block.energy.PlasmaCapacitorBlockEntity;
 import com.github.litermc.vsmecha.block.energy.ThermalEnergyCoreBlock;
 import com.github.litermc.vsmecha.block.energy.ThermalEnergyCoreBlockEntity;
+import com.github.litermc.vsmecha.block.joint.ElectroGraspBlock;
+import com.github.litermc.vsmecha.block.joint.ElectroGraspBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ServoBlock;
 import com.github.litermc.vsmecha.block.joint.ServoBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ServoHeadBlock;
@@ -111,6 +113,7 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<PlasmaCapacitorBlock> PLASMA_CAPACITOR = REGISTRY.register("plasma_capacitor", () -> new PlasmaCapacitorBlock(properties()));
 		public static final RegistryEntry<ThermalEnergyCoreBlock> THERMAL_ENERGY_CORE = REGISTRY.register("thermal_energy_core", () -> new ThermalEnergyCoreBlock(properties()));
 
+		public static final RegistryEntry<ElectroGraspBlock> ELECTRO_GRASP = REGISTRY.register("electro_grasp", () -> new ElectroGraspBlock(properties()));
 		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(properties()));
 		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(properties().noCollission()));
 
@@ -183,6 +186,7 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<BlockEntityType<PlasmaCapacitorBlockEntity>> PLASMA_CAPACITOR = of("plasma_capacitor", PlasmaCapacitorBlockEntity::new, Blocks.PLASMA_CAPACITOR);
 		public static final RegistryEntry<BlockEntityType<ThermalEnergyCoreBlockEntity>> THERMAL_ENERGY_CORE = of("thermal_energy_core", ThermalEnergyCoreBlockEntity::new, Blocks.THERMAL_ENERGY_CORE);
 
+		public static final RegistryEntry<BlockEntityType<ElectroGraspBlockEntity>> ELECTRO_GRASP = of("electro_grasp", ElectroGraspBlockEntity::new, Blocks.ELECTRO_GRASP);
 		public static final RegistryEntry<BlockEntityType<ServoBlockEntity>> SERVO = of("servo", ServoBlockEntity::new, Blocks.SERVO);
 		public static final RegistryEntry<BlockEntityType<ServoHeadBlockEntity>> SERVO_HEAD = of("servo_head", ServoHeadBlockEntity::new, Blocks.SERVO_HEAD);
 
@@ -252,6 +256,10 @@ public final class VSMechaRegistry {
 			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON))
 		);
 
+		public static final RegistryEntry<BlockItem> ELECTRO_GRASP = ofBlock(
+			Blocks.ELECTRO_GRASP,
+			(block, props) -> new BlockItem(block, props)
+		);
 		public static final RegistryEntry<BlockItem> SERVO = ofBlock(
 			Blocks.SERVO,
 			(block, props) -> new BlockItem(block, props.rarity(Rarity.RARE).stacksTo(16))

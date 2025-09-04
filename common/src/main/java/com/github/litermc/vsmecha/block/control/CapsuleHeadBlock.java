@@ -27,7 +27,7 @@ public class CapsuleHeadBlock extends Block {
 		final BlockPos posBelow = pos.below();
 		final BlockState stateBelow = level.getBlockState(posBelow);
 		if (!(stateBelow.getBlock() instanceof CapsuleSeatBlock seatBlock)) {
-			return InteractionResult.PASS;
+			return super.use(state, level, pos, player, hand, hit);
 		}
 		return seatBlock.use(stateBelow, level, posBelow, player, hand, hit);
 	}

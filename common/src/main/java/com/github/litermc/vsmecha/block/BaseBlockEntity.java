@@ -53,24 +53,28 @@ public abstract class BaseBlockEntity extends BlockEntity {
 	@Override
 	public void setLevel(final Level level) {
 		super.setLevel(level);
-		if (level instanceof ServerLevel serverLevel) {
-			final ServerShip ship = ShipUtil.getServerShip(serverLevel, this.getBlockPos());
-			if (ship instanceof final LoadedServerShip loadedShip) {
-				ShipNetworkAttachment.get(loadedShip).addBlockEntity(this);
-			}
+		if (!(level instanceof ServerLevel serverLevel)) {
+			return;
+		}
+		final ServerShip ship = ShipUtil.getServerShip(serverLevel, this.getBlockPos());
+		if (ship instanceof final LoadedServerShip loadedShip) {
+			ShipNetworkAttachment.get(loadedShip).addBlockEntity(this);
 		}
 	}
 
 	@Override
 	public void setRemoved() {
 		super.setRemoved();
-		if (this.getLevel() instanceof ServerLevel level) {
-			final ServerShip ship = ShipUtil.getServerShip(level, this.getBlockPos());
-			if (ship instanceof final LoadedServerShip loadedShip) {
-				ShipNetworkAttachment.get(loadedShip).removeBlockEntity(this);
-			}
+		if (!(this.getLevel() instanceof ServerLevel level)) {
+			return;
+		}
+		final ServerShip ship = ShipUtil.getServerShip(level, this.getBlockPos());
+		if (ship instanceof final LoadedServerShip loadedShip) {
+			ShipNetworkAttachment.get(loadedShip).removeBlockEntity(this);
 		}
 	}
+
+	public void beforeRemove() {}
 
 	public void serverTick() {}
 
