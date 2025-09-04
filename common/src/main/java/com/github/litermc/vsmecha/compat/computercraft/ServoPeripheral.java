@@ -119,6 +119,11 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 	}
 
 	@LuaFunction
+	public final double getLastTorque() {
+		return this.be.getLastTorque();
+	}
+
+	@LuaFunction
 	public final MethodResult getPosPID() {
 		final ServoBlockEntity.PID pid = this.be.getPosPID();
 		return MethodResult.of(pid.getKp(), pid.getKi(), pid.getKd());

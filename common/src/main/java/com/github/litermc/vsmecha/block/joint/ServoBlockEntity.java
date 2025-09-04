@@ -58,6 +58,7 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 	private volatile boolean positionMode = true;
 	private volatile double targetAngle = 0;
 	private volatile double targetVelocity = 0;
+	private volatile double lastTorque = 0;
 	private volatile AnglePID posPID = new AnglePID(3, 0, 4, this.getMaxRotateSpeed());
 	private volatile VelocityPID velPID = new VelocityPID(3e5, 1e2, 0, ROTATE_MAX_FORCE);
 	private volatile double feedForwardForce = 0;
@@ -155,6 +156,10 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		}
 		this.targetVelocity = velocity;
 		this.setChanged();
+	}
+
+	public double getLastTorque() {
+		return this.lastTorque;
 	}
 
 	public PID getPosPID() {
@@ -601,6 +606,7 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		// final double gfff = gff.alpha == 0 ? 0 : gff.compute(currentAngle);
 		force = Math.min(Math.max(force + fff, -ROTATE_MAX_FORCE), ROTATE_MAX_FORCE);
 
+		this.lastTorque = force;
 		this.heatBuilt.addAndGet((int) (force / ROTATE_MAX_FORCE * 200));
 		final Vector3d torque = axis.mul(force, new Vector3d());
 

@@ -161,7 +161,11 @@ public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlock
 	public void physicsTick(final PhysShip ship, final Function<Long, PhysShip> lookup) {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos basePos = this.basePos;
-		if (basePos == null || VSGameUtilsKt.isBlockInShipyard(level, basePos)) {
+		if (basePos == null) {
+			return;
+		}
+		final ServerShip peerShip = VSGameUtilsKt.getShipManagingPos(level, basePos);
+		if (peerShip == null || !peerShip.isStatic()) {
 			return;
 		}
 		final ServoBlockEntity sbe = this.sbe;
