@@ -165,14 +165,14 @@ public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlock
 			return;
 		}
 		final ServerShip peerShip = VSGameUtilsKt.getShipManagingPos(level, basePos);
-		if (peerShip == null || !peerShip.isStatic()) {
+		if (peerShip != null && !peerShip.isStatic()) {
 			return;
 		}
 		final ServoBlockEntity sbe = this.sbe;
 		if (sbe == null || sbe.isRemoved()) {
 			return;
 		}
-		sbe.stepServo(null, ship, 1.0 / 60);
+		sbe.stepServo(peerShip, ship, 1.0 / 60);
 	}
 
 	private void queueRefreshCables() {
