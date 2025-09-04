@@ -217,7 +217,14 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 		if (hitResult.getType() != HitResult.Type.MISS && hitResult.getLocation().distanceToSqr(pos) > 2 * 2) {
 			return false;
 		}
-		if (RayCastUtil.rayCastEntity(this.getLevel(), scanCenter, pos, (e) -> e instanceof SmokeEntity) != null) {
+		if (
+			RayCastUtil.rayCastEntity(
+				this.getLevel(),
+				scanCenter,
+				pos,
+				(e) -> e instanceof SmokeEntity || (e instanceof LivingEntity le && le.canBeSeenByAnyone())
+			) != null
+		) {
 			return false;
 		}
 		return true;

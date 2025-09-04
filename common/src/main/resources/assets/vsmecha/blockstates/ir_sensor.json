@@ -1,0 +1,64 @@
+{
+	"variants": {
+		"orientation=north_up": {
+			"model": "vsmecha:block/ir_sensor",
+			"x": 0,
+			"y": 0 
+		},
+		"orientation=south_up": {
+			"model": "vsmecha:block/ir_sensor",
+			"x": 0,
+			"y": 180
+		},
+		"orientation=west_up": {
+			"model": "vsmecha:block/ir_sensor",
+			"x": 0,
+			"y": 270
+		},
+		"orientation=east_up": {
+			"model": "vsmecha:block/ir_sensor",
+			"x": 0,
+			"y": 90
+		},
+		"orientation=up_north": {
+			"model": "vsmecha:block/ir_sensor",
+			"x": -90,
+			"y": 180
+		},
+		"orientation=up_south": {
+			"model": "vsmecha:block/ir_sensor",
+			"x": -90,
+			"y": 0
+		},
+		"orientation=up_west": {
+			"model": "vsmecha:block/ir_sensor",
+			"x": -90,
+			"y": 90
+		},
+		"orientation=up_east": {
+			"model": "vsmecha:block/ir_sensor",
+			"x": -90,
+			"y": 270
+		},
+		"orientation=down_north": {
+			"model": "vsmecha:block/ir_sensor",
+			"x": 90,
+			"y": 0
+		},
+		"orientation=down_south": {
+			"model": "vsmecha:block/ir_sensor",
+			"x": 90,
+			"y": 180
+		},
+		"orientation=down_west": {
+			"model": "vsmecha:block/ir_sensor",
+			"x": 90,
+			"y": 270
+		},
+		"orientation=down_east": {
+			"model": "vsmecha:block/ir_sensor",
+			"x": 90,
+			"y": 90
+		}
+	}
+}

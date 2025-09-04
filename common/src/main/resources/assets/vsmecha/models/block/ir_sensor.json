@@ -1,0 +1,9 @@
+{
+	"parent": "minecraft:block/cube_bottom_top",
+	"textures": {
+		"bottom": "vsmecha:block/ir_sensor_bottom",
+		"particle": "vsmecha:block/ir_sensor_side",
+		"side": "vsmecha:block/ir_sensor_side",
+		"top": "vsmecha:block/ir_sensor_top"
+	}
+}

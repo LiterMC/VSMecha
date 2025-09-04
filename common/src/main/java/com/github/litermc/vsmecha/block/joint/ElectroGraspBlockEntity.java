@@ -161,9 +161,9 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 		final ServerShip ship = ShipUtil.getServerShip(level, pos);
 		final Direction dir = this.getDirection();
 		final Vector3dc mountPos = new Vector3d(
-			pos.getX() + 0.5 + dir.getStepX() * 6.0 / 16,
-			pos.getY() + 0.5 + dir.getStepY() * 6.0 / 16,
-			pos.getZ() + 0.5 + dir.getStepZ() * 6.0 / 16
+			pos.getX() + 0.5 + dir.getStepX() * 5.9 / 16,
+			pos.getY() + 0.5 + dir.getStepY() * 5.9 / 16,
+			pos.getZ() + 0.5 + dir.getStepZ() * 5.9 / 16
 		);
 		final Vector3d to = mountPos.add(
 			dir.getStepX() * EXTEND_LOCK_AREA,

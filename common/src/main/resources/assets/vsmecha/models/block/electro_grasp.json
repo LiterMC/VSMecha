@@ -4,8 +4,8 @@
 	"parent": "minecraft:block/block",
 	"texture_size": [64, 64],
 	"textures": {
-		"0": "vsmecha:block/servo",
-		"particle": "vsmecha:block/servo"
+		"0": "vsmecha:block/electro_grasp",
+		"particle": "vsmecha:block/electro_grasp"
 	},
 	"elements": [
 		{
