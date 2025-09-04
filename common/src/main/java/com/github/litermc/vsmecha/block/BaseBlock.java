@@ -16,6 +16,21 @@ public abstract class BaseBlock extends Block implements EntityBlock {
 	}
 
 	@Override
+	public void neighborChanged(
+		final BlockState state,
+		final Level level,
+		final BlockPos pos,
+		final Block neighbor,
+		final BlockPos neighborPos,
+		final boolean moving
+	) {
+		super.neighborChanged(state, level, pos, neighbor, neighborPos, moving);
+		if (level.getBlockEntity(pos) instanceof BaseBlockEntity be) {
+			be.neighborChanged(neighbor, neighborPos, moving);
+		}
+	}
+
+	@Override
 	public void onRemove(
 		final BlockState state,
 		final Level level,

@@ -8,6 +8,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -75,6 +76,8 @@ public abstract class BaseBlockEntity extends BlockEntity {
 	}
 
 	public void beforeRemove() {}
+
+	public void neighborChanged(final Block neighbor, final BlockPos neighborPos, final boolean moving) {}
 
 	public void serverTick() {}
 

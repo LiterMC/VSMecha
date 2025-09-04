@@ -16,6 +16,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -40,6 +41,7 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 	private Vector3dc attachingPos = null;
 	private Vector3dc pendingAttachPos = null;
 	private Integer attachConstraintId = null;
+	private boolean redstoneAttach = false;
 
 	public ElectroGraspBlockEntity(final BlockEntityType<? extends ElectroGraspBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -102,6 +104,7 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 			final ListTag attachingPosList = data.getList("AttachingPos", Tag.TAG_DOUBLE);
 			this.pendingAttachPos = new Vector3d(attachingPosList.getDouble(0), attachingPosList.getDouble(1), attachingPosList.getDouble(2));
 		}
+		this.redstoneAttach = data.getBoolean("RedstoneAttach");
 	}
 
 	@Override
@@ -116,6 +119,7 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 			attachingPosList.add(DoubleTag.valueOf(attachingPos.z()));
 			data.put("AttachingPos", attachingPosList);
 		}
+		data.putBoolean("RedstoneAttach", redstoneAttach);
 	}
 
 	@Override
@@ -125,6 +129,7 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 
 	@Override
 	public boolean detach() {
+		this.redstoneAttach = false;
 		if (this.attachingBlock == null) {
 			return false;
 		}
@@ -147,6 +152,9 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 		}
 		if (this.isAttached()) {
 			this.detach();
+		}
+		if (this.getEnergyStored() < this.getEnergyConsumption()) {
+			return false;
 		}
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos pos = this.getBlockPos();
@@ -180,7 +188,7 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 			return false;
 		}
 		final BlockPos targetPos = hitResult.getBlockPos();
-		// TODO: add mountable tag?
+		// TODO: add mountable block tag?
 		final ServerShip target = ShipUtil.getServerShip(level, targetPos);
 		if (target != null) {
 			target.getTransform().getWorldToShip().transformPosition(from);
@@ -205,6 +213,7 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 		this.attachingBlock = targetPos;
 		this.attachingPos = mountPos;
 		this.pendingAttachPos = null;
+		this.redstoneAttach = false;
 		return true;
 	}
 
@@ -257,6 +266,22 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 		);
 		this.attachConstraintId = world.createNewConstraint(attachConstraint);
 		this.attachingPos = pendingAttachPos;
+	}
+
+	@Override
+	public void neighborChanged(final Block neighbor, final BlockPos neighborPos, final boolean moving) {
+		super.neighborChanged(neighbor, neighborPos, moving);
+		if (!(this.getLevel() instanceof ServerLevel level)) {
+			return;
+		}
+		final boolean wantAttach = level.hasNeighborSignal(this.getBlockPos());
+		if (this.redstoneAttach) {
+			if (!wantAttach) {
+				this.detach();
+			}
+		} else if (wantAttach && !this.isAttached() && this.tryAttach()) {
+			this.redstoneAttach = true;
+		}
 	}
 
 	@Override

@@ -48,6 +48,7 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -92,30 +93,37 @@ public final class VSMechaRegistry {
 		private static final RegistrationHelper<Block> REGISTRY = PlatformHelper.get().createRegistrationHelper(Registries.BLOCK);
 
 		private static BlockBehaviour.Properties properties() {
-			return BlockBehaviour.Properties.of().isValidSpawn((state, level, pos, entityType) -> false);
+			return BlockBehaviour.Properties.of()
+				.isValidSpawn((state, level, pos, entityType) -> false)
+				.requiresCorrectToolForDrops();
+		}
+
+		private static BlockBehaviour.Properties propertiesNoRedstone() {
+			return properties().isRedstoneConductor(Blocks::never);
 		}
 
 		public static final RegistryEntry<CapsuleHeadBlock> CAPSULE_HEAD = REGISTRY.register("capsule_head", () -> new CapsuleHeadBlock(
-			properties()
+			propertiesNoRedstone()
 				.noOcclusion()
-				.isRedstoneConductor((state, level, pos) -> false)
-				.isSuffocating((state, level, pos) -> false)
-				.isViewBlocking((state, level, pos) -> false)
-				.requiresCorrectToolForDrops()
+				.isSuffocating(Blocks::never)
+				.isViewBlocking(Blocks::never)
 		));
 		public static final RegistryEntry<CapsuleSeatBlock> CAPSULE_SEAT = REGISTRY.register("capsule_seat", () -> new CapsuleSeatBlock(
-			properties()
-				.isRedstoneConductor((state, level, pos) -> false)
-				.requiresCorrectToolForDrops()
+			propertiesNoRedstone()
+				.noOcclusion()
+				.isSuffocating(Blocks::never)
+				.isViewBlocking(Blocks::never)
 		));
 
 		public static final RegistryEntry<EnergyPortBlock> ENERGY_PORT = REGISTRY.register("energy_port", () -> new EnergyPortBlock(properties()));
 		public static final RegistryEntry<PlasmaCapacitorBlock> PLASMA_CAPACITOR = REGISTRY.register("plasma_capacitor", () -> new PlasmaCapacitorBlock(properties()));
 		public static final RegistryEntry<ThermalEnergyCoreBlock> THERMAL_ENERGY_CORE = REGISTRY.register("thermal_energy_core", () -> new ThermalEnergyCoreBlock(properties()));
 
-		public static final RegistryEntry<ElectroGraspBlock> ELECTRO_GRASP = REGISTRY.register("electro_grasp", () -> new ElectroGraspBlock(properties()));
-		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(properties()));
-		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(properties().noCollission()));
+		public static final RegistryEntry<ElectroGraspBlock> ELECTRO_GRASP = REGISTRY.register("electro_grasp", () -> new ElectroGraspBlock(
+			propertiesNoRedstone()
+		));
+		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(propertiesNoRedstone()));
+		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(propertiesNoRedstone().noCollission()));
 
 		public static final RegistryEntry<IFFBeaconBlock> IFF_BEACON = REGISTRY.register("iff_beacon", () -> new IFFBeaconBlock(properties()));
 		public static final RegistryEntry<RadarBlock> IR_SENSOR = REGISTRY.register("ir_sensor", () -> new RadarBlock(properties()) {
@@ -159,6 +167,10 @@ public final class VSMechaRegistry {
 			REGISTRY.register("black_tool_block", () -> new StainedToolBlock(DyeColor.BLACK, BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.BLACK_CONCRETE)));
 
 		public static void onRegisterRenderType(final BiConsumer<Block, RenderType> consumer) {
+		}
+
+		private static boolean never(final BlockState state, final BlockGetter level, final BlockPos pos) {
+			return false;
 		}
 
 		private Blocks() {}

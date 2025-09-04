@@ -172,7 +172,7 @@ public class ServoHeadBlockEntity extends BaseBlockEntity implements IJointBlock
 		if (sbe == null || sbe.isRemoved()) {
 			return;
 		}
-		sbe.stepServo(peerShip, ship, 1.0 / 60);
+		sbe.stepServo(peerShip == null ? null : lookup.apply(peerShip.getId()), ship, 1.0 / 60);
 	}
 
 	private void queueRefreshCables() {
