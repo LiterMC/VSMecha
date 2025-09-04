@@ -58,8 +58,9 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 	private volatile boolean positionMode = true;
 	private volatile double targetAngle = 0;
 	private volatile double targetVelocity = 0;
+	private volatile double maxSpeed = 15 * Math.PI / 180;
 	private volatile double lastTorque = 0;
-	private volatile AnglePID posPID = new AnglePID(3, 0, 4, this.getMaxRotateSpeed());
+	private volatile AnglePID posPID = this.new AnglePID(3, 0, 4);
 	private volatile VelocityPID velPID = new VelocityPID(3e5, 1e2, 0, ROTATE_MAX_FORCE);
 	private volatile double feedForwardForce = 0;
 	// private volatile GravityFeedForwarder gravityFeedForwarder = new GravityFeedForwarder(0.02);
@@ -78,13 +79,6 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 
 	public ServoBlockEntity(final BlockPos pos, final BlockState state) {
 		this(VSMechaRegistry.BlockEntities.SERVO.get(), pos, state);
-	}
-
-	/**
-	 * @return max rotation speed in rad/s
-	 */
-	public double getMaxRotateSpeed() {
-		return 15 * Math.PI / 180;
 	}
 
 	public Direction getDirection() {
@@ -158,6 +152,22 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		this.setChanged();
 	}
 
+	/**
+	 * @return max rotation speed in rad/s
+	 */
+	public double getMaxRotationSpeed() {
+		return this.maxSpeed;
+	}
+
+	public void setMaxRotationSpeed(double speed) {
+		speed = Math.max(Math.abs(speed), 6 * 360 / 180 * Math.PI);
+		if (this.maxSpeed == speed) {
+			return;
+		}
+		this.maxSpeed = speed;
+		this.setChanged();
+	}
+
 	public double getLastTorque() {
 		return this.lastTorque;
 	}
@@ -171,7 +181,7 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 	}
 
 	private void setPosPIDNoSave(final double p, final double i, final double d) {
-		this.posPID = new AnglePID(p, i, d, this.getMaxRotateSpeed());
+		this.posPID = this.new AnglePID(p, i, d);
 	}
 
 	public void setPosPID(final double p, final double i, final double d) {
@@ -532,15 +542,6 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 			this.headNode = headNode;
 		}
 
-		double maxSpeed = this.getMaxRotateSpeed();
-		if (this.isDangerous()) {
-			maxSpeed /= 2;
-		}
-		final double angle = this.readAngle();
-		final double targetAngle = this.getTargetAngle();
-		final boolean wasWorking = this.working;
-		this.angle = angle;
-
 		boolean canWork = this.isEnabled();
 		if (canWork) {
 			final int newEnergy = this.getEnergyStored() - this.getEnergyConsumption();
@@ -556,10 +557,6 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 
 	@Override
 	public void physicsTick(final PhysShip ship, final Function<Long, PhysShip> lookup) {
-		if (!this.working) {
-			return;
-		}
-
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos headPos = this.headPos;
 		if (headPos == null) {
@@ -572,6 +569,8 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 	}
 
 	void stepServo(final PhysShip ship, final PhysShip otherShip, final double dt) {
+		final double currentAngle = this.readAngleInPhy(ship, otherShip);
+		this.angle = currentAngle;
 		if (!this.working) {
 			return;
 		}
@@ -583,7 +582,6 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		final Matrix4d transform = ship == null ? new Matrix4d() : new Matrix4d(ship.getTransform().getShipToWorld());
 		final Direction dir = this.getDirection();
 		final Vector3dc axis = transform.transformDirection(new Vector3d(dir.getStepX(), dir.getStepY(), dir.getStepZ()));
-		final double currentAngle = this.readAngleInPhy(ship, otherShip);
 		final double currentVelocity = MathUtil.normalizeAngle(currentAngle - this.lastAngle) / dt;
 		this.lastAngle = currentAngle;
 
@@ -635,19 +633,17 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		double getKd();
 	}
 
-	private static final class AnglePID implements PID {
+	private final class AnglePID implements PID {
 		private final double kp;
 		private final double ki;
 		private final double kd;
-		private final double maxOutput;
 		private double lastAngle = 0;
 		private double integral = 0;
 
-		public AnglePID(final double kp, final double ki, final double kd, final double maxOutput) {
+		public AnglePID(final double kp, final double ki, final double kd) {
 			this.kp = kp;
 			this.ki = ki;
 			this.kd = kd;
-			this.maxOutput = maxOutput;
 		}
 
 		@Override
@@ -671,8 +667,9 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 			final double velocity = MathUtil.normalizeAngle(currentAngle - this.lastAngle) / dt;
 			double output = this.kp * error + this.ki * integral - this.kd * velocity;
 			this.lastAngle = currentAngle;
-			if (Math.abs(output) > this.maxOutput) {
-				output = Math.signum(output) * this.maxOutput;
+			final double maxOutput = ServoBlockEntity.this.maxSpeed;
+			if (Math.abs(output) > maxOutput) {
+				output = Math.signum(output) * maxOutput;
 			} else {
 				this.integral = integral;
 			}

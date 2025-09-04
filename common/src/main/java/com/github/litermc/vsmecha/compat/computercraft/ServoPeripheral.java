@@ -24,11 +24,6 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 	}
 
 	@LuaFunction
-	public final double getMaxRotateSpeed() {
-		return this.be.getMaxRotateSpeed();
-	}
-
-	@LuaFunction
 	public final boolean isAttached() {
 		return this.be.isAttached();
 	}
@@ -116,6 +111,16 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 	@LuaFunction
 	public final void setTargetVelocity(final double velocity) {
 		this.be.setTargetVelocity(velocity);
+	}
+
+	@LuaFunction
+	public final double getMaxRotationSpeed() {
+		return this.be.getMaxRotationSpeed();
+	}
+
+	@LuaFunction
+	public final void setMaxRotationSpeed(final double speed) {
+		this.be.setMaxRotationSpeed(speed);
 	}
 
 	@LuaFunction
