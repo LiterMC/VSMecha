@@ -1,6 +1,7 @@
 package com.github.litermc.vsmecha.block.radar;
 
 import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
+import com.github.litermc.vsmecha.block.radar.result.ScanResult;
 import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.radar.RadarPeripheral;
 
@@ -250,64 +251,4 @@ public abstract class RadarBlockEntity extends EnergyBasedBlockEntity {
 
 	/*** end utility methods ***/
 
-	public static class ScanResult {
-		private final double distance;
-		private final double xRot, yRot;
-
-		public ScanResult(final double distance, final double xRot, final double yRot) {
-			this.distance = distance;
-			this.xRot = xRot;
-			this.yRot = yRot;
-		}
-
-		public final double getDistance() {
-			return this.distance;
-		}
-
-		public final double getXRot() {
-			return this.xRot;
-		}
-
-		public final double getYRot() {
-			return this.yRot;
-		}
-
-		public void saveAsJSON(final Map<String, Object> data) {
-			data.put("distance", this.distance);
-			data.put("xRot", this.xRot);
-			data.put("yRot", this.yRot);
-		}
-
-		public final Map<String, Object> toJSON() {
-			final Map<String, Object> data = new HashMap<>();
-			this.saveAsJSON(data);
-			return data;
-		}
-	}
-
-	public static class ScanResultWithType extends ScanResult {
-		public static final String TYPE_ENTITY = "entity";
-		public static final String TYPE_SHIP = "ship";
-
-		private final String type;
-
-		public ScanResultWithType(
-			final double distance,
-			final double xRot,
-			final double yRot,
-			final String type
-		) {
-			super(distance, xRot, yRot);
-			this.type = type;
-		}
-
-		public final String getType() {
-			return this.type;
-		}
-
-		public void saveAsJSON(final Map<String, Object> data) {
-			super.saveAsJSON(data);
-			data.put("type", this.type);
-		}
-	}
 }

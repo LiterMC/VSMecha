@@ -94,6 +94,16 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 	}
 
 	@LuaFunction
+	public final int getPositionLoopScale() {
+		return this.be.getPositionLoopScale();
+	}
+
+	@LuaFunction
+	public final void setPositionLoopScale(final int positionLoopScale) {
+		this.be.setPositionLoopScale(positionLoopScale);
+	}
+
+	@LuaFunction
 	public final double getTargetAngle() {
 		return this.be.getTargetAngle();
 	}

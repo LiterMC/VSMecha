@@ -56,6 +56,7 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 	private volatile boolean working = false;
 	private volatile double angle = 0;
 	private volatile boolean positionMode = true;
+	private volatile int positionLoopScale = 6;
 	private volatile double targetAngle = 0;
 	private volatile double targetVelocity = 0;
 	private volatile double maxSpeed = 15 * Math.PI / 180;
@@ -69,7 +70,7 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 	private Object headNode = null;
 
 	private final AtomicInteger heatBuilt = new AtomicInteger();
-	private int physTick = 0;
+	private int posPIDCD = 0;
 	private double lastAngle = 0;
 
 	public ServoBlockEntity(final BlockEntityType<? extends ServoBlockEntity> type, final BlockPos pos, final BlockState state) {
@@ -124,6 +125,19 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 			return;
 		}
 		this.positionMode = positionMode;
+		this.setChanged();
+	}
+
+	public int getPositionLoopScale() {
+		return this.positionLoopScale;
+	}
+
+	public void setPositionLoopScale(int positionLoopScale) {
+		positionLoopScale = Math.max(positionLoopScale, 1);
+		if (this.positionLoopScale == positionLoopScale) {
+			return;
+		}
+		this.positionLoopScale = positionLoopScale;
 		this.setChanged();
 	}
 
@@ -253,6 +267,7 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 			this.headDirOppo = Direction.values()[data.getByte("HeadDir")];
 		}
 		this.positionMode = data.getBoolean("PositionMode");
+		this.positionLoopScale = Math.max(data.getInt("PositionLoopScale"), 1);
 		this.targetAngle = MathUtil.normalizeAngle(data.getDouble("TargetAngle"));
 		this.targetVelocity = data.getDouble("TargetVelocity");
 		final CompoundTag posPID = data.getCompound("PosPID");
@@ -263,16 +278,11 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 	}
 
 	@Override
-	protected void saveShared(final CompoundTag data) {
-		super.saveShared(data);
+	protected void saveAdditional(final CompoundTag data) {
+		super.saveAdditional(data);
 		data.putBoolean("AutoAttach", this.autoAttach);
-		final BlockPos headPos = this.headPos != null ? this.headPos : this.pendingHeadPos;
-		if (headPos != null) {
-			data.putIntArray("HeadPos", new int[]{headPos.getX(), headPos.getY(), headPos.getZ()});
-			data.putByte("HeadDir", (byte) (this.headDirOppo.ordinal()));
-		}
 		data.putBoolean("PositionMode", this.positionMode);
-		data.putDouble("TargetAngle", this.targetAngle);
+		data.putInt("PositionLoopScale", this.positionLoopScale);
 		data.putDouble("TargetVelocity", this.targetVelocity);
 		final PID posPID = this.getPosPID();
 		final CompoundTag posPIDTag = new CompoundTag();
@@ -287,6 +297,17 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 		velPIDTag.putDouble("D", velPID.getKd());
 		data.put("VelPID", velPIDTag);
 		data.putDouble("FeedForwardForce", this.feedForwardForce);
+	}
+
+	@Override
+	protected void saveShared(final CompoundTag data) {
+		super.saveShared(data);
+		final BlockPos headPos = this.headPos != null ? this.headPos : this.pendingHeadPos;
+		if (headPos != null) {
+			data.putIntArray("HeadPos", new int[]{headPos.getX(), headPos.getY(), headPos.getZ()});
+			data.putByte("HeadDir", (byte) (this.headDirOppo.ordinal()));
+		}
+		data.putDouble("TargetAngle", this.targetAngle);
 	}
 
 	private double readAngle() {
@@ -575,9 +596,17 @@ public class ServoBlockEntity extends JointBasedBlockEntity implements IAttachab
 			return;
 		}
 
-		final int positionLoopScale = 3; // TODO: should run position PID slower?
-		final boolean shouldRunPos = this.positionMode && (this.physTick % positionLoopScale == 0);
-		this.physTick++;
+		final int positionLoopScale = this.positionLoopScale;
+		final boolean shouldRunPos;
+		if (this.positionMode) {
+			this.posPIDCD--;
+			shouldRunPos = this.posPIDCD <= 0;
+			if (shouldRunPos) {
+				this.posPIDCD = positionLoopScale;
+			}
+		} else {
+			shouldRunPos = false;
+		}
 
 		final Matrix4d transform = ship == null ? new Matrix4d() : new Matrix4d(ship.getTransform().getShipToWorld());
 		final Direction dir = this.getDirection();

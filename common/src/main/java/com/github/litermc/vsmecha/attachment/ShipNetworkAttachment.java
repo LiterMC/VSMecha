@@ -4,6 +4,7 @@ import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
 import com.github.litermc.vsmecha.block.IPhysTickableBlockEntity;
 import com.github.litermc.vsmecha.block.energy.IEnergyBlockEntity;
 import com.github.litermc.vsmecha.block.joint.IJointBlockEntity;
+import com.github.litermc.vsmecha.block.radar.IFFBeaconBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipGlobalWiredElement;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
@@ -35,6 +36,7 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import kotlin.jvm.functions.Function1;
@@ -49,9 +51,11 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 	private final Set<BlockPos> energyBlocks = new HashSet<>();
 	private final Set<BlockPos> joints = new HashSet<>();
 	private final Map<BlockPos, IPhysTickableBlockEntity> physTickers = new ConcurrentHashMap<>();
+	private final Set<BlockPos> iffBeacons = new HashSet<>();
 	private final Map<BlockPos, Object> peripherals = new HashMap<>();
 
 	private boolean ticking = false;
+	private BlockPos lastIFFBeacon = null;
 	private long lastTickAvailableEnergy = 0;
 	private long lastTickUsedEnergy = 0;
 	private NavigableSet<PrioEnergyRecord> lastTickedEnergyBlocks = Collections.emptyNavigableSet();
@@ -79,6 +83,10 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 		return this.joints;
 	}
 
+	public BlockPos getLastIFFBeacon() {
+		return this.lastIFFBeacon;
+	}
+
 	public NavigableSet<PrioEnergyRecord> getLastTickedEnergyBlocks() {
 		return this.lastTickedEnergyBlocks;
 	}
@@ -100,6 +108,9 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 		}
 		if (be instanceof IPhysTickableBlockEntity ticker) {
 			this.physTickers.put(pos, ticker);
+		}
+		if (be instanceof IFFBeaconBlockEntity) {
+			this.iffBeacons.add(pos);
 		}
 	}
 
@@ -125,29 +136,13 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 		if (be instanceof IPhysTickableBlockEntity) {
 			this.physTickers.remove(pos);
 		}
+		if (be instanceof IFFBeaconBlockEntity) {
+			this.iffBeacons.remove(pos);
+		}
 		if (CompatMods.COMPUTERCRAFT.isLoaded() && be instanceof IPeripheralBlockEntity) {
 			this.peripherals.remove(be);
 		}
 	}
-
-	// private void updateTickedNetworks(final Set<ShipNetworkAttachment> tickedNetworks) {
-	// 	final Set<ShipNetworkAttachment> connectedNetworks = new HashSet<>(tickedNetworks);
-	// 	final Set<ShipNetworkAttachment> disconnectedNetworks = new HashSet<>(this.lastTickedNetworks);
-	// 	connectedNetworks.removeAll(this.lastTickedNetworks);
-	// 	disconnectedNetworks.removeAll(tickedNetworks);
-
-	// 	if (CompatMods.COMPUTERCRAFT.isLoaded()) {
-	// 		final WiredNode selfNode = (WiredNode) (this.globalNode);
-	// 		for (final ShipNetworkAttachment other : connectedNetworks) {
-	// 			selfNode.connectTo((WiredNode) (other.globalNode));
-	// 		}
-	// 		for (final ShipNetworkAttachment other : disconnectedNetworks) {
-	// 			selfNode.disconnectFrom((WiredNode) (other.globalNode));
-	// 		}
-	// 	}
-
-	// 	this.lastTickedNetworks = tickedNetworks;
-	// }
 
 	@Override
 	public void applyForces(final PhysShip ship) {}
@@ -183,15 +178,15 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 		}
 
 		boolean hasThingToTick = false;
-		final Set<Long> shipIDs = new HashSet<>();
+
 		final List<ShipNetworkAttachment> networks = new ArrayList<>();
+		final Set<Long> shipIDs = new HashSet<>();
 		shipIDs.add(ship.getId());
 		networks.add(this);
 		for (int i = 0; i < networks.size(); i++) {
 			final ShipNetworkAttachment network = networks.get(i);
 			hasThingToTick = hasThingToTick || !network.energyBlocks.isEmpty() || !network.peripherals.isEmpty();
 
-			// final Set<ShipNetworkAttachment> networkSet = new HashSet<>();
 			final Iterator<BlockPos> jointIter = network.joints.iterator();
 			while (jointIter.hasNext()) {
 				final BlockPos jointPos = jointIter.next();
@@ -199,34 +194,48 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 					jointIter.remove();
 					continue;
 				}
-				if (!(jbe.getPeerShip() instanceof LoadedServerShip otherLoadedShip)) {
+				if (!jbe.canTransferEnergy()) {
 					continue;
 				}
-				final ShipNetworkAttachment otherNetwork = ShipNetworkAttachment.get(otherLoadedShip);
-				// networkSet.add(otherNetwork);
-				if (!jbe.canTransferEnergy()) {
+				if (!(jbe.getPeerShip() instanceof LoadedServerShip otherLoadedShip)) {
 					continue;
 				}
 				if (!shipIDs.add(otherLoadedShip.getId())) {
 					continue;
 				}
+				final ShipNetworkAttachment otherNetwork = ShipNetworkAttachment.get(otherLoadedShip);
 				if (!otherNetwork.preTick(level, otherLoadedShip)) {
 					// May happen when server just started
 					continue;
 				}
 				networks.add(otherNetwork);
 			}
-			// network.updateTickedNetworks(networkSet);
 		}
 
 		if (!hasThingToTick) {
 			return;
 		}
 
+		BlockPos iffBeacon = null;
+		boolean multipleIFFBeacons = false;
 		long tickAvailableEnergy = 0, tickUsedEnergy = 0;
 		final NavigableSet<PrioEnergyRecord> sortedEnergyBlocks = new TreeSet<>();
 
 		for (final ShipNetworkAttachment network : networks) {
+			if (!multipleIFFBeacons) {
+				if (network.iffBeacons.size() > 1) {
+					multipleIFFBeacons = true;
+					iffBeacon = null;
+				} else if (network.iffBeacons.size() == 1) {
+					if (iffBeacon != null) {
+						multipleIFFBeacons = true;
+						iffBeacon = null;
+					} else {
+						iffBeacon = network.iffBeacons.iterator().next();
+					}
+				}
+			}
+
 			final Iterator<BlockPos> ebeIter = network.energyBlocks.iterator();
 			while (ebeIter.hasNext()) {
 				final BlockPos pos = ebeIter.next();
@@ -278,9 +287,12 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 			}
 		}
 
-		this.lastTickAvailableEnergy = tickAvailableEnergy;
-		this.lastTickUsedEnergy = tickUsedEnergy;
-		this.lastTickedEnergyBlocks = sortedEnergyBlocks;
+		for (final ShipNetworkAttachment network : networks) {
+			network.lastIFFBeacon = iffBeacon;
+			network.lastTickAvailableEnergy = tickAvailableEnergy;
+			network.lastTickUsedEnergy = tickUsedEnergy;
+			network.lastTickedEnergyBlocks = sortedEnergyBlocks;
+		}
 	}
 
 	public void postTick() {

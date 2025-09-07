@@ -3,6 +3,9 @@ package com.github.litermc.vsmecha.block.radar;
 import com.github.litermc.vsmecha.VSMechaRegistry;
 import com.github.litermc.vsmecha.attachment.ShipNetworkAttachment;
 import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
+import com.github.litermc.vsmecha.block.radar.result.ScanResult;
+import com.github.litermc.vsmecha.block.radar.result.ScanSizeInfo;
+import com.github.litermc.vsmecha.block.radar.result.ScanTypeInfo;
 import com.github.litermc.vsmecha.compat.computercraft.radar.IRSensorPeripheral;
 import com.github.litermc.vsmecha.entity.SmokeEntity;
 import com.github.litermc.vsmecha.util.BlockSourceClipContext;
@@ -230,7 +233,7 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 		return true;
 	}
 
-	private ScanResultWithSize scanResultFromEntity(final LivingEntity entity, final Vec3 scanCenter, final Matrix4dc transform) {
+	private ScanResult scanResultFromEntity(final LivingEntity entity, final Vec3 scanCenter, final Matrix4dc transform) {
 		final Vec3 pos = entity.position();
 		final Vector3d relPos = new Vector3d(pos.x - scanCenter.x, pos.y - scanCenter.y, pos.z - scanCenter.z);
 		final double distance = relPos.length();
@@ -241,10 +244,10 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 
 		final double width = entity.getBbWidth();
 		final double height = entity.getBbHeight();
-		return this.createScanResultWithError(distance, xRot, yRot, ScanResultWithType.TYPE_ENTITY, width, height);
+		return this.createScanResultWithError(ScanTypeInfo.ENTITY, distance, xRot, yRot, width, height);
 	}
 
-	private ScanResultWithSize scanResultFromPoint(final PointWithCounter point, final Vec3 scanCenter, final Matrix4dc transform) {
+	private ScanResult scanResultFromPoint(final PointWithCounter point, final Vec3 scanCenter, final Matrix4dc transform) {
 		final Vector3d relPos = new Vector3d(point.p.x - scanCenter.x, point.p.y - scanCenter.y, point.p.z - scanCenter.z);
 		final double distance = relPos.length();
 
@@ -255,14 +258,14 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 		final AABBd projBox = point.box.transform(transform);
 		final double width = projBox.lengthX();
 		final double height = projBox.lengthY();
-		return this.createScanResultWithError(distance, xRot, yRot, ScanResultWithType.TYPE_SHIP, width, height);
+		return this.createScanResultWithError(ScanTypeInfo.SHIP, distance, xRot, yRot, width, height);
 	}
 
-	private ScanResultWithSize createScanResultWithError(
+	private ScanResult createScanResultWithError(
+		final ScanTypeInfo type,
 		double distance,
 		double xRot,
 		double yRot,
-		final String type,
 		double width,
 		double height
 	) {
@@ -275,39 +278,7 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 			width = applyError(width, ERROR);
 			height = applyError(height, ERROR);
 		}
-		return new ScanResultWithSize(distance, xRot, yRot, type, width, height);
-	}
-
-	public static class ScanResultWithSize extends ScanResultWithType {
-		private final double width;
-		private final double height;
-
-		public ScanResultWithSize(
-			final double distance,
-			final double xRot,
-			final double yRot,
-			final String type,
-			final double width,
-			final double height
-		) {
-			super(distance, xRot, yRot, type);
-			this.width = width;
-			this.height = height;
-		}
-
-		public final double getWidth() {
-			return this.width;
-		}
-
-		public final double getHeight() {
-			return this.height;
-		}
-
-		public void saveAsJSON(final Map<String, Object> data) {
-			super.saveAsJSON(data);
-			data.put("width", this.width);
-			data.put("height", this.height);
-		}
+		return new ScanResult(distance, xRot, yRot).appendInfo(type).appendInfo(new ScanSizeInfo(width, height));
 	}
 
 	private record PointWithCounter(Vec3 p, int c, AABBd box) {

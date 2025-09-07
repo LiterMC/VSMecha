@@ -15,8 +15,11 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 public abstract class BaseBlockEntity extends BlockEntity {
+	private boolean needInit = false;
+
 	protected BaseBlockEntity(final BlockEntityType<? extends BaseBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
 	}
@@ -57,9 +60,16 @@ public abstract class BaseBlockEntity extends BlockEntity {
 		if (!(level instanceof ServerLevel serverLevel)) {
 			return;
 		}
-		final ServerShip ship = ShipUtil.getServerShip(serverLevel, this.getBlockPos());
+		final BlockPos pos = this.getBlockPos();
+		if (!VSGameUtilsKt.isBlockInShipyard(serverLevel, pos)) {
+			return;
+		}
+		final ServerShip ship = ShipUtil.getServerShip(serverLevel, pos);
 		if (ship instanceof final LoadedServerShip loadedShip) {
 			ShipNetworkAttachment.get(loadedShip).addBlockEntity(this);
+			this.needInit = false;
+		} else {
+			this.needInit = true;
 		}
 	}
 
@@ -79,7 +89,16 @@ public abstract class BaseBlockEntity extends BlockEntity {
 
 	public void neighborChanged(final Block neighbor, final BlockPos neighborPos, final boolean moving) {}
 
-	public void serverTick() {}
+	public void serverTick() {
+		if (!this.needInit) {
+			return;
+		}
+		final ServerShip ship = ShipUtil.getServerShip((ServerLevel) (this.getLevel()), this.getBlockPos());
+		if (ship instanceof final LoadedServerShip loadedShip) {
+			ShipNetworkAttachment.get(loadedShip).addBlockEntity(this);
+			this.needInit = false;
+		}
+	}
 
 	public void clientTick() {}
 }

@@ -1,6 +1,7 @@
 package com.github.litermc.vsmecha.compat.computercraft.radar;
 
 import com.github.litermc.vsmecha.block.radar.RadarBlockEntity;
+import com.github.litermc.vsmecha.block.radar.result.ScanResult;
 import com.github.litermc.vsmecha.compat.computercraft.EnergyBasedPeripheral;
 
 import dan200.computercraft.api.lua.LuaFunction;
@@ -82,11 +83,11 @@ public abstract class RadarPeripheral<T extends RadarBlockEntity> extends Energy
 		this.be.queueScan();
 	}
 
-	public void onScanFinished(final List<RadarBlockEntity.ScanResult> results) {
+	public void onScanFinished(final List<ScanResult> results) {
 		if (!this.computers.hasComputers()) {
 			return;
 		}
-		final List<Map<String, Object>> encodedResults = results.stream().map(RadarBlockEntity.ScanResult::toJSON).toList();
+		final List<Map<String, Object>> encodedResults = results.stream().map(ScanResult::toJSON).toList();
 		this.computers.forEach((computer) -> computer.queueEvent("radar_scan", computer.getAttachmentName(), encodedResults));
 	}
 }
