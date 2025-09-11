@@ -2,8 +2,8 @@ package com.github.litermc.vsmecha.compat.computercraft;
 
 import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ServoBlockEntity;
-import com.github.litermc.vsmecha.block.joint.ServoHeadBlockEntity;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
+import com.github.litermc.vsmecha.util.pid.PID;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -140,7 +140,7 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 
 	@LuaFunction
 	public final MethodResult getPosPID() {
-		final ServoBlockEntity.PID pid = this.be.getPosPID();
+		final PID pid = this.be.getPosPID();
 		return MethodResult.of(pid.getKp(), pid.getKi(), pid.getKd());
 	}
 
@@ -151,7 +151,7 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 
 	@LuaFunction
 	public final MethodResult getVelPID() {
-		final ServoBlockEntity.PID pid = this.be.getVelPID();
+		final PID pid = this.be.getVelPID();
 		return MethodResult.of(pid.getKp(), pid.getKi(), pid.getKd());
 	}
 

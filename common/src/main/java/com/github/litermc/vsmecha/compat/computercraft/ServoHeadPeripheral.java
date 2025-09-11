@@ -1,8 +1,7 @@
 package com.github.litermc.vsmecha.compat.computercraft;
 
 import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
-import com.github.litermc.vsmecha.block.joint.ServoBlockEntity;
-import com.github.litermc.vsmecha.block.joint.ServoHeadBlockEntity;
+import com.github.litermc.vsmecha.block.joint.AbstractServoHeadBlockEntity;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
 
 import net.minecraft.core.BlockPos;
@@ -13,8 +12,8 @@ import dan200.computercraft.api.lua.MethodResult;
 
 import org.valkyrienskies.core.api.ships.ServerShip;
 
-public class ServoHeadPeripheral extends BasePeripheral<ServoHeadBlockEntity> {
-	public ServoHeadPeripheral(final ServoHeadBlockEntity be) {
+public class ServoHeadPeripheral extends BasePeripheral<AbstractServoHeadBlockEntity> {
+	public ServoHeadPeripheral(final AbstractServoHeadBlockEntity be) {
 		super(be);
 	}
 
