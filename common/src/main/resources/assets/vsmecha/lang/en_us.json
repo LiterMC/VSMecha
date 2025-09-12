@@ -18,8 +18,8 @@
 
 	"block.vsmecha.electro_grasp": "Electro Grasp",
 	"block.vsmecha.energy_port": "Energy Port",
-	"block.vsmecha.gimble_servo": "Gimble Servo",
-	"block.vsmecha.gimble_servo_head": "Gimble Servo Head",
+	"block.vsmecha.gimbal_servo": "Gimbal Servo",
+	"block.vsmecha.gimbal_servo_head": "Gimbal Servo Head",
 	"block.vsmecha.ir_sensor": "IR Sensor",
 	"block.vsmecha.plasma_capacitor": "Plasma Capacitor",
 	"block.vsmecha.servo": "Servo",

@@ -4,8 +4,8 @@
 	"parent": "minecraft:block/block",
 	"texture_size": [64, 64],
 	"textures": {
-		"0": "vsmecha:block/gimble_servo_head",
-		"particle": "vsmecha:block/gimble_servo_head"
+		"0": "vsmecha:block/gimbal_servo_head",
+		"particle": "vsmecha:block/gimbal_servo_head"
 	},
 	"elements": [
 		{

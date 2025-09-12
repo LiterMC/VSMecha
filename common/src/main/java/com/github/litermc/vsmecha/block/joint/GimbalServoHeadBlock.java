@@ -1,6 +1,6 @@
 package com.github.litermc.vsmecha.block.joint;
 
-import com.github.litermc.vsmecha.block.energy.EnergyBasedBlock;
+import com.github.litermc.vsmecha.block.BaseBlock;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -17,8 +17,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import java.util.EnumMap;
 import java.util.Map;
 
-public class GimbleServoBlock extends EnergyBasedBlock {
-	private static final double HEIGHT = 6;
+public class GimbalServoHeadBlock extends BaseBlock {
+	private static final double HEIGHT = 1;
 	private static final EnumMap<Direction, VoxelShape> SHAPES = new EnumMap<>(Map.of(
 		Direction.DOWN, Block.box(0, 16 - HEIGHT, 0, 16, 16, 16),
 		Direction.UP, Block.box(0, 0, 0, 16, HEIGHT, 16),
@@ -28,7 +28,7 @@ public class GimbleServoBlock extends EnergyBasedBlock {
 		Direction.EAST, Block.box(0, 0, 0, HEIGHT, 16, 16)
 	));
 
-	public GimbleServoBlock(final BlockBehaviour.Properties props) {
+	public GimbalServoHeadBlock(final BlockBehaviour.Properties props) {
 		super(props);
 		this.registerDefaultState(
 			this.defaultBlockState()
@@ -44,17 +44,14 @@ public class GimbleServoBlock extends EnergyBasedBlock {
 
 	@Override
 	public BlockState getStateForPlacement(final BlockPlaceContext ctx) {
-		Direction dir = ctx.getNearestLookingDirection();
-		if (!ctx.isSecondaryUseActive()) {
-			dir = dir.getOpposite();
-		}
+		final Direction dir = ctx.getClickedFace();
 		return this.defaultBlockState()
 			.setValue(BlockStateProperties.FACING, dir);
 	}
 
 	@Override
-	public GimbleServoBlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
-		return new GimbleServoBlockEntity(pos, state);
+	public GimbalServoHeadBlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
+		return new GimbalServoHeadBlockEntity(pos, state);
 	}
 
 	@Override

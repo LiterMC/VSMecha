@@ -1,7 +1,7 @@
 package com.github.litermc.vsmecha.block.joint;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
-import com.github.litermc.vsmecha.compat.computercraft.GimbleServoPeripheral;
+import com.github.litermc.vsmecha.compat.computercraft.GimbalServoPeripheral;
 import com.github.litermc.vsmecha.util.MathUtil;
 import com.github.litermc.vsmecha.util.ShipUtil;
 import com.github.litermc.vsmecha.util.pid.AnglePID;
@@ -24,7 +24,7 @@ import org.valkyrienskies.core.api.ships.PhysShip;
 import org.valkyrienskies.core.apigame.constraints.VSAttachmentConstraint;
 import org.valkyrienskies.core.apigame.constraints.VSConstraint;
 
-public class GimbleServoBlockEntity extends AbstractServoBlockEntity {
+public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 	private static final Quaterniondc ZERO_QUAT = new Quaterniond();
 	private static final Vector3dc ZERO_VEC3 = new Vector3d();
 	private static final double ATTACH_COMPLIANCE = 0;
@@ -47,12 +47,12 @@ public class GimbleServoBlockEntity extends AbstractServoBlockEntity {
 	private volatile Vector3dc lastOmega = ZERO_VEC3;
 	private volatile Vector3dc lastTorque = ZERO_VEC3;
 
-	public GimbleServoBlockEntity(final BlockEntityType<? extends GimbleServoBlockEntity> type, final BlockPos pos, final BlockState state) {
+	public GimbalServoBlockEntity(final BlockEntityType<? extends GimbalServoBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
 	}
 
-	public GimbleServoBlockEntity(final BlockPos pos, final BlockState state) {
-		this(VSMechaRegistry.BlockEntities.GIMBLE_SERVO.get(), pos, state);
+	public GimbalServoBlockEntity(final BlockPos pos, final BlockState state) {
+		this(VSMechaRegistry.BlockEntities.GIMBAL_SERVO.get(), pos, state);
 	}
 
 	public Quaterniondc getCurrentRotation() {
@@ -240,7 +240,7 @@ public class GimbleServoBlockEntity extends AbstractServoBlockEntity {
 
 	@Override
 	protected boolean canAttachHead(Class<?> headClass) {
-		return GimbleServoHeadBlockEntity.class.isAssignableFrom(headClass);
+		return GimbalServoHeadBlockEntity.class.isAssignableFrom(headClass);
 	}
 
 	@Override
@@ -276,7 +276,7 @@ public class GimbleServoBlockEntity extends AbstractServoBlockEntity {
 
 	@Override
 	protected Object createPeripheral() {
-		return new GimbleServoPeripheral(this);
+		return new GimbalServoPeripheral(this);
 	}
 
 	@Override

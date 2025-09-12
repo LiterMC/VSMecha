@@ -1,11 +1,11 @@
 [
 	{
-		"block": "vsmecha:gimble_servo",
+		"block": "vsmecha:gimbal_servo",
 		"mass": 1850,
 		"elasticity": 0.1
 	},
 	{
-		"block": "vsmecha:gimble_servo_head",
+		"block": "vsmecha:gimbal_servo_head",
 		"mass": 200
 	},
 	{
