@@ -1,7 +1,7 @@
 package com.github.litermc.vsmecha.compat.computercraft;
 
 import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
-import com.github.litermc.vsmecha.block.joint.GlimbleServoBlockEntity;
+import com.github.litermc.vsmecha.block.joint.GimbleServoBlockEntity;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
 import com.github.litermc.vsmecha.util.pid.PID;
 
@@ -21,14 +21,14 @@ import dan200.computercraft.api.lua.MethodResult;
 
 import org.valkyrienskies.core.api.ships.ServerShip;
 
-public class GlimbleServoPeripheral extends EnergyBasedPeripheral<GlimbleServoBlockEntity> {
-	public GlimbleServoPeripheral(final GlimbleServoBlockEntity be) {
+public class GimbleServoPeripheral extends EnergyBasedPeripheral<GimbleServoBlockEntity> {
+	public GimbleServoPeripheral(final GimbleServoBlockEntity be) {
 		super(be);
 	}
 
 	@Override
 	public String getType() {
-		return "glimble_servo";
+		return "gimble_servo";
 	}
 
 	@LuaFunction

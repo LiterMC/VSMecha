@@ -15,10 +15,10 @@ import com.github.litermc.vsmecha.block.energy.ThermalEnergyCoreBlock;
 import com.github.litermc.vsmecha.block.energy.ThermalEnergyCoreBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ElectroGraspBlock;
 import com.github.litermc.vsmecha.block.joint.ElectroGraspBlockEntity;
-import com.github.litermc.vsmecha.block.joint.GlimbleServoBlock;
-import com.github.litermc.vsmecha.block.joint.GlimbleServoBlockEntity;
-import com.github.litermc.vsmecha.block.joint.GlimbleServoHeadBlock;
-import com.github.litermc.vsmecha.block.joint.GlimbleServoHeadBlockEntity;
+import com.github.litermc.vsmecha.block.joint.GimbleServoBlock;
+import com.github.litermc.vsmecha.block.joint.GimbleServoBlockEntity;
+import com.github.litermc.vsmecha.block.joint.GimbleServoHeadBlock;
+import com.github.litermc.vsmecha.block.joint.GimbleServoHeadBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ServoBlock;
 import com.github.litermc.vsmecha.block.joint.ServoBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ServoHeadBlock;
@@ -126,8 +126,8 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<ElectroGraspBlock> ELECTRO_GRASP = REGISTRY.register("electro_grasp", () -> new ElectroGraspBlock(
 			propertiesNoRedstone()
 		));
-		public static final RegistryEntry<GlimbleServoBlock> GLIMBLE_SERVO = REGISTRY.register("glimble_servo", () -> new GlimbleServoBlock(propertiesNoRedstone()));
-		public static final RegistryEntry<GlimbleServoHeadBlock> GLIMBLE_SERVO_HEAD = REGISTRY.register("glimble_servo_head", () -> new GlimbleServoHeadBlock(propertiesNoRedstone().noCollission()));
+		public static final RegistryEntry<GimbleServoBlock> GIMBLE_SERVO = REGISTRY.register("gimble_servo", () -> new GimbleServoBlock(propertiesNoRedstone()));
+		public static final RegistryEntry<GimbleServoHeadBlock> GIMBLE_SERVO_HEAD = REGISTRY.register("gimble_servo_head", () -> new GimbleServoHeadBlock(propertiesNoRedstone().noCollission()));
 		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(propertiesNoRedstone()));
 		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(propertiesNoRedstone().noCollission()));
 
@@ -205,8 +205,8 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<BlockEntityType<ThermalEnergyCoreBlockEntity>> THERMAL_ENERGY_CORE = of("thermal_energy_core", ThermalEnergyCoreBlockEntity::new, Blocks.THERMAL_ENERGY_CORE);
 
 		public static final RegistryEntry<BlockEntityType<ElectroGraspBlockEntity>> ELECTRO_GRASP = of("electro_grasp", ElectroGraspBlockEntity::new, Blocks.ELECTRO_GRASP);
-		public static final RegistryEntry<BlockEntityType<GlimbleServoBlockEntity>> GLIMBLE_SERVO = of("glimble_servo", GlimbleServoBlockEntity::new, Blocks.GLIMBLE_SERVO);
-		public static final RegistryEntry<BlockEntityType<GlimbleServoHeadBlockEntity>> GLIMBLE_SERVO_HEAD = of("glimble_servo_head", GlimbleServoHeadBlockEntity::new, Blocks.GLIMBLE_SERVO_HEAD);
+		public static final RegistryEntry<BlockEntityType<GimbleServoBlockEntity>> GIMBLE_SERVO = of("gimble_servo", GimbleServoBlockEntity::new, Blocks.GIMBLE_SERVO);
+		public static final RegistryEntry<BlockEntityType<GimbleServoHeadBlockEntity>> GIMBLE_SERVO_HEAD = of("gimble_servo_head", GimbleServoHeadBlockEntity::new, Blocks.GIMBLE_SERVO_HEAD);
 		public static final RegistryEntry<BlockEntityType<ServoBlockEntity>> SERVO = of("servo", ServoBlockEntity::new, Blocks.SERVO);
 		public static final RegistryEntry<BlockEntityType<ServoHeadBlockEntity>> SERVO_HEAD = of("servo_head", ServoHeadBlockEntity::new, Blocks.SERVO_HEAD);
 
@@ -280,12 +280,12 @@ public final class VSMechaRegistry {
 			Blocks.ELECTRO_GRASP,
 			(block, props) -> new BlockItem(block, props)
 		);
-		public static final RegistryEntry<BlockItem> GLIMBLE_SERVO = ofBlock(
-			Blocks.GLIMBLE_SERVO,
+		public static final RegistryEntry<BlockItem> GIMBLE_SERVO = ofBlock(
+			Blocks.GIMBLE_SERVO,
 			(block, props) -> new BlockItem(block, props.rarity(Rarity.RARE).stacksTo(16))
 		);
-		public static final RegistryEntry<BlockItem> GLIMBLE_SERVO_HEAD = ofBlock(
-			Blocks.GLIMBLE_SERVO_HEAD,
+		public static final RegistryEntry<BlockItem> GIMBLE_SERVO_HEAD = ofBlock(
+			Blocks.GIMBLE_SERVO_HEAD,
 			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON))
 		);
 		public static final RegistryEntry<BlockItem> SERVO = ofBlock(

@@ -269,7 +269,7 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 
 	@Override
 	protected int[] getConstraints() {
-		return this.servoInfo.attachConstraints;
+		return this.servoInfo == null ? null : this.servoInfo.attachConstraints;
 	}
 
 	@Override

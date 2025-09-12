@@ -1,35 +1,14 @@
 package com.github.litermc.vsmecha.util.pid;
 
-public final class OmegaPID implements PID {
-	private final double kp;
-	private final double ki;
-	private final double kd;
+public final class OmegaPID extends PID {
 	private final double maxOutput;
 	private final double intLimit;
 	private double lastVel = 0;
-	private double integral = 0;
 
 	public OmegaPID(final double kp, final double ki, final double kd, final double maxOutput) {
-		this.kp = kp;
-		this.ki = ki;
-		this.kd = kd;
+		super(kp, ki, kd);
 		this.maxOutput = maxOutput;
 		this.intLimit = maxOutput / Math.max(ki, 1e-6);
-	}
-
-	@Override
-	public double getKp() {
-		return this.kp;
-	}
-
-	@Override
-	public double getKi() {
-		return this.ki;
-	}
-
-	@Override
-	public double getKd() {
-		return this.kd;
 	}
 
 	public OmegaPID recreate(final double kp, final double ki, final double kd) {

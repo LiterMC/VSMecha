@@ -342,6 +342,7 @@ function Quaternion:getEulerAnglesYXZ()
 end
 
 function Quaternion:getEulerAnglesYXZTo(dest)
+	expect(1, dest, 'table')
 	dest.x = safeAsin(-2.0 * (self.y * self.z - self.w * self.x));
 	dest.y = math.atan2(self.x * self.z + self.y * self.w, 0.5 - self.y * self.y - self.x * self.x);
 	dest.z = math.atan2(self.y * self.x + self.w * self.z, 0.5 - self.x * self.x - self.z * self.z);

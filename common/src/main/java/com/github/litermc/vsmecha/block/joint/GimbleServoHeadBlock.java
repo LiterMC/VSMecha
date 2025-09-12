@@ -17,7 +17,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import java.util.EnumMap;
 import java.util.Map;
 
-public class GlimbleServoHeadBlock extends BaseBlock {
+public class GimbleServoHeadBlock extends BaseBlock {
 	private static final double HEIGHT = 1;
 	private static final EnumMap<Direction, VoxelShape> SHAPES = new EnumMap<>(Map.of(
 		Direction.DOWN, Block.box(0, 16 - HEIGHT, 0, 16, 16, 16),
@@ -28,7 +28,7 @@ public class GlimbleServoHeadBlock extends BaseBlock {
 		Direction.EAST, Block.box(0, 0, 0, HEIGHT, 16, 16)
 	));
 
-	public GlimbleServoHeadBlock(final BlockBehaviour.Properties props) {
+	public GimbleServoHeadBlock(final BlockBehaviour.Properties props) {
 		super(props);
 		this.registerDefaultState(
 			this.defaultBlockState()
@@ -50,8 +50,8 @@ public class GlimbleServoHeadBlock extends BaseBlock {
 	}
 
 	@Override
-	public GlimbleServoHeadBlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
-		return new GlimbleServoHeadBlockEntity(pos, state);
+	public GimbleServoHeadBlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
+		return new GimbleServoHeadBlockEntity(pos, state);
 	}
 
 	@Override

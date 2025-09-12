@@ -18,10 +18,12 @@
 
 	"block.vsmecha.electro_grasp": "Electro Grasp",
 	"block.vsmecha.energy_port": "Energy Port",
+	"block.vsmecha.gimble_servo": "Gimble Servo",
+	"block.vsmecha.gimble_servo_head": "Gimble Servo Head",
 	"block.vsmecha.ir_sensor": "IR Sensor",
+	"block.vsmecha.plasma_capacitor": "Plasma Capacitor",
 	"block.vsmecha.servo": "Servo",
 	"block.vsmecha.servo_head": "Servo Head",
-	"block.vsmecha.plasma_capacitor": "Plasma Capacitor",
 
 	"itemGroup.vsmecha": "VS Mecha"
 }

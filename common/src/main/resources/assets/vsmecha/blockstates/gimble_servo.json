@@ -1,0 +1,34 @@
+{
+	"variants": {
+		"facing=down": {
+			"model": "vsmecha:block/gimble_servo",
+			"x": 180,
+			"y": 0
+		},
+		"facing=up": {
+			"model": "vsmecha:block/gimble_servo",
+			"x": 0,
+			"y": 0
+		},
+		"facing=north": {
+			"model": "vsmecha:block/gimble_servo",
+			"x": 90,
+			"y": 0 
+		},
+		"facing=south": {
+			"model": "vsmecha:block/gimble_servo",
+			"x": 90,
+			"y": 180
+		},
+		"facing=west": {
+			"model": "vsmecha:block/gimble_servo",
+			"x": 90,
+			"y": 270
+		},
+		"facing=east": {
+			"model": "vsmecha:block/gimble_servo",
+			"x": 90,
+			"y": 90
+		}
+	}
+}
