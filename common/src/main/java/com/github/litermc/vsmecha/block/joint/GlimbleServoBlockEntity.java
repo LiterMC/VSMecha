@@ -42,9 +42,10 @@ public class GlimbleServoBlockEntity extends AbstractServoBlockEntity {
 	private final Component compPitch = new Component(new AnglePID(3, 0, 4, DEFAULT_PITCH_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
 	private final Component compYaw = new Component(new AnglePID(3, 0, 4, DEFAULT_YAW_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
 	private final Component compRoll = new Component(new AnglePID(3, 0, 4, DEFAULT_ROLL_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
-	private volatile Vector3dc lastTorque = ZERO_VEC3;
 
 	private Quaterniondc lastRotation = ZERO_QUAT;
+	private volatile Vector3dc lastOmega = ZERO_VEC3;
+	private volatile Vector3dc lastTorque = ZERO_VEC3;
 
 	public GlimbleServoBlockEntity(final BlockEntityType<? extends GlimbleServoBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -229,6 +230,10 @@ public class GlimbleServoBlockEntity extends AbstractServoBlockEntity {
 		this.compRoll.feedForwardForce = feedForwardForce;
 	}
 
+	public Vector3dc getLastOmega() {
+		return this.lastOmega;
+	}
+
 	public Vector3dc getLastTorque() {
 		return this.lastTorque;
 	}
@@ -326,6 +331,7 @@ public class GlimbleServoBlockEntity extends AbstractServoBlockEntity {
 
 		final Vector3d omega = getQuaternionError(currentRotation, this.lastRotation).div(dt);
 		this.lastRotation = currentRotation;
+		this.lastOmega = omega;
 		final Vector3d error = getQuaternionError(currentRotation, this.targetRotation);
 
 		Vector3dc torque = new Vector3d(

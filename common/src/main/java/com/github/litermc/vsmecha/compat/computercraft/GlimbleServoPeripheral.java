@@ -137,6 +137,12 @@ public class GlimbleServoPeripheral extends EnergyBasedPeripheral<GlimbleServoBl
 	}
 
 	@LuaFunction
+	public final MethodResult getLastOmega() {
+		final Vector3dc omega = this.be.getLastOmega();
+		return MethodResult.of(omega.x(), omega.y(), omega.z());
+	}
+
+	@LuaFunction
 	public final MethodResult getLastTorque() {
 		final Vector3dc torque = this.be.getLastTorque();
 		return MethodResult.of(torque.x(), torque.y(), torque.z());

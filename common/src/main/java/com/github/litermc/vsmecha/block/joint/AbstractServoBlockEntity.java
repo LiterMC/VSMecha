@@ -144,7 +144,7 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos pos = this.getBlockPos();
 
-		if (!(level.getBlockEntity(otherPos) instanceof final AbstractServoHeadBlockEntity head) || this.canAttachHead(head.getClass())) {
+		if (!(level.getBlockEntity(otherPos) instanceof final AbstractServoHeadBlockEntity head) || !this.canAttachHead(head.getClass())) {
 			return false;
 		}
 		if (head.servoInfo != null) {
@@ -333,12 +333,15 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 				this.servoInfo = null;
 				this.headPos = null;
 				this.setChanged();
-			} else if (level.getBlockEntity(this.headPos) instanceof final AbstractServoHeadBlockEntity head) {
+			} else if (
+				level.getBlockEntity(this.headPos) instanceof final AbstractServoHeadBlockEntity head &&
+				ShipUtil.getShipOrDimId(level, pos) != ShipUtil.getShipOrDimId(level, this.headPos)
+			) {
 				if (head.basePos == null) {
 					head.basePos = pos;
 					head.servoInfo = this.servoInfo;
 				}
-			} else if (ShipUtil.getShipOrDimId(level, pos) == ShipUtil.getShipOrDimId(level, this.headPos)) {
+			} else {
 				this.detach();
 			}
 		}

@@ -11,6 +11,10 @@ local Quaternion = {
 }
 Quaternion.__index = Quaternion
 
+local function safeAsin(angle)
+	return math.asin(math.min(math.max(angle, -1), 1))
+end
+
 local function safeAcos(angle)
 	return math.acos(math.min(math.max(angle, -1), 1))
 end
@@ -206,6 +210,9 @@ function Quaternion:lengthSquared()
 end
 
 function Quaternion:rotationYXZ(angleY, angleX, angleZ)
+	if type(angleY) == 'table' then
+		angleX, angleY, angleZ = angleY.x, angleY.y, angleY.z
+	end
 	expect(1, angleY, 'number')
 	expect(2, angleX, 'number')
 	expect(3, angleZ, 'number')
@@ -226,6 +233,119 @@ function Quaternion:rotationYXZ(angleY, angleX, angleZ)
 	self.z = w * sz - z * cz
 	self.w = w * cz + z * sz
 	return self
+end
+
+function Quaternion:rotateX(angle)
+	expect(1, angle, 'number')
+	return self:rotateXTo(angle, self)
+end
+
+function Quaternion:rotateXTo(angle, dest)
+	expect(1, angle, 'number')
+	expect(2, dest, 'table')
+	local sin = math.sin(angle * 0.5)
+	local cos = math.cos(angle * 0.5)
+	dest.x = self.x * cos + self.w * sin
+	dest.y = self.y * cos + self.z * sin
+	dest.z = self.z * cos - self.y * sin
+	dest.w = self.w * cos - self.x * sin
+	return dest
+end
+
+function Quaternion:rotateY(angle)
+	expect(1, angle, 'number')
+	return self:rotateYTo(angle, self)
+end
+
+function Quaternion:rotateYTo(angle, dest)
+	expect(1, angle, 'number')
+	expect(2, dest, 'table')
+	local sin = math.sin(angle * 0.5)
+	local cos = math.cos(angle * 0.5)
+	dest.x = self.x * cos - self.z * sin
+	dest.y = self.y * cos + self.w * sin
+	dest.z = self.z * cos + self.x * sin
+	dest.w = self.w * cos - self.y * sin
+	return dest
+end
+
+function Quaternion:rotateZ(angle)
+	expect(1, angle, 'number')
+	return self:rotateZTo(angle, self)
+end
+
+function Quaternion:rotateZTo(angle, dest)
+	expect(1, angle, 'number')
+	expect(2, dest, 'table')
+	local sin = math.sin(angle * 0.5)
+	local cos = math.cos(angle * 0.5)
+	dest.x = self.x * cos + self.y * sin
+	dest.y = self.y * cos - self.x * sin
+	dest.z = self.z * cos + self.w * sin
+	dest.w = self.w * cos - self.z * sin
+	return dest
+end
+
+function Quaternion:rotateLocalX(angle)
+	expect(1, angle, 'number')
+	return self:rotateLocalXTo(angle, self)
+end
+
+function Quaternion:rotateLocalXTo(angle, dest)
+	expect(1, angle, 'number')
+	expect(2, dest, 'table')
+	local sin = math.sin(angle * 0.5)
+	local cos = math.cos(angle * 0.5)
+	dest.x = self.x * cos + self.w * sin
+	dest.y = self.y * cos - self.z * sin
+	dest.z = self.z * cos + self.y * sin
+	dest.w = self.w * cos - self.x * sin
+	return dest
+end
+
+function Quaternion:rotateLocalY(angle)
+	expect(1, angle, 'number')
+	return self:rotateLocalYTo(angle, self)
+end
+
+function Quaternion:rotateLocalYTo(angle, dest)
+	expect(1, angle, 'number')
+	expect(2, dest, 'table')
+	local sin = math.sin(angle * 0.5)
+	local cos = math.cos(angle * 0.5)
+	dest.x = self.x * cos + self.z * sin
+	dest.y = self.y * cos + self.w * sin
+	dest.z = self.z * cos - self.x * sin
+	dest.w = self.w * cos - self.y * sin
+	return dest
+end
+
+function Quaternion:rotateLocalZ(angle)
+	expect(1, angle, 'number')
+	return self:rotateLocalZTo(angle, self)
+end
+
+function Quaternion:rotateLocalZTo(angle, dest)
+	expect(1, angle, 'number')
+	expect(2, dest, 'table')
+	local sin = math.sin(angle * 0.5)
+	local cos = math.cos(angle * 0.5)
+	dest.x = self.x * cos - self.y * sin
+	dest.y = self.y * cos + self.x * sin
+	dest.z = self.z * cos + self.w * sin
+	dest.w = self.w * cos - self.z * sin
+	return dest
+end
+
+function Quaternion:getEulerAnglesYXZ()
+	return self:getEulerAnglesYXZTo(vector.new())
+end
+
+function Quaternion:getEulerAnglesYXZTo(dest)
+	dest.x = safeAsin(-2.0 * (self.y * self.z - self.w * self.x));
+	dest.y = math.atan2(self.x * self.z + self.y * self.w, 0.5 - self.y * self.y - self.x * self.x);
+	dest.z = math.atan2(self.y * self.x + self.w * self.z, 0.5 - self.x * self.x - self.z * self.z);
+	return dest
 end
 
 function Quaternion:slerp(target, alpha)
