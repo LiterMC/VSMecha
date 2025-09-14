@@ -4,6 +4,7 @@
 
 package com.github.litermc.vsmecha;
 
+import com.github.litermc.vsmecha.block.DummyBlockEntity;
 import com.github.litermc.vsmecha.block.control.CapsuleHeadBlock;
 import com.github.litermc.vsmecha.block.control.CapsuleSeatBlock;
 import com.github.litermc.vsmecha.block.control.CapsuleSeatBlockEntity;
@@ -217,6 +218,10 @@ public final class VSMechaRegistry {
 				return PlatformHelper.get().createBlockEntityType(factory, blks);
 			});
 		}
+
+		public static final RegistryEntry<BlockEntityType<DummyBlockEntity>> DUMMY = REGISTRY.register("_dummy", () -> PlatformHelper.get().createBlockEntityType((pos, state) -> {
+			throw new IllegalStateException("Should not be created");
+		}));
 
 		public static final RegistryEntry<BlockEntityType<CapsuleSeatBlockEntity>> CAPSULE_SEAT = of("capsule_seat", CapsuleSeatBlockEntity::new, Blocks.CAPSULE_SEAT);
 

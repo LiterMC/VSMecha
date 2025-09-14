@@ -1,7 +1,7 @@
 package com.github.litermc.vsmecha.compat.computercraft.network;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
+import com.github.litermc.vsmecha.block.DummyBlockEntity;
+
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 
@@ -52,12 +52,5 @@ public final class ShipModemPeripheral extends WiredModemPeripheral {
 				(side) -> {}
 			)
 		);
-	}
-
-	private static final class DummyBlockEntity extends BlockEntity {
-		private DummyBlockEntity(final Level level, final BlockPos pos) {
-			super(null, pos, null);
-			this.level = level;
-		}
 	}
 }

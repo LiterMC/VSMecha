@@ -18,6 +18,9 @@ public final class BlockCapabilityProviders {
 	public static void register() {
 		MinecraftForge.EVENT_BUS.addGenericListener(BlockEntity.class, (AttachCapabilitiesEvent<? extends BlockEntity> event) -> {
 			final BlockEntity be = event.getObject();
+			if (!(be instanceof BaseBlockEntity)) {
+				return;
+			}
 			if (CompatMods.COMPUTERCRAFT.isLoaded() && be instanceof IPeripheralBlockEntity) {
 				IPeripheralBlockEntityCapabilityProvider.onGatherCapabilities((AttachCapabilitiesEvent<BlockEntity>) (event));
 			}
