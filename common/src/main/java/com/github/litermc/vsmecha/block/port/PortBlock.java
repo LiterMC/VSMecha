@@ -1,6 +1,7 @@
-package com.github.litermc.vsmecha.block.energy;
+package com.github.litermc.vsmecha.block.port;
 
-import net.minecraft.core.BlockPos;
+import com.github.litermc.vsmecha.block.energy.EnergyBasedBlock;
+
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.block.Block;
@@ -9,8 +10,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
-public class EnergyPortBlock extends EnergyBasedBlock {
-	public EnergyPortBlock(final BlockBehaviour.Properties props) {
+public abstract class PortBlock extends EnergyBasedBlock {
+	public PortBlock(final BlockBehaviour.Properties props) {
 		super(props);
 		this.registerDefaultState(
 			this.defaultBlockState()
@@ -32,10 +33,5 @@ public class EnergyPortBlock extends EnergyBasedBlock {
 		}
 		return this.defaultBlockState()
 			.setValue(BlockStateProperties.FACING, dir);
-	}
-
-	@Override
-	public EnergyPortBlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
-		return new EnergyPortBlockEntity(pos, state);
 	}
 }

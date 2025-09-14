@@ -281,7 +281,7 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 
 	@Override
 	public boolean canConnectPeripheralWire(final Direction dir) {
-		return this.getDirection() != dir;
+		return this.getDirection().getOpposite() == dir;
 	}
 
 	@Override
@@ -343,9 +343,8 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 		this.heatBuilt.addAndGet((int) ((torque.x() + torque.y() + torque.z()) / ROTATE_MAX_FORCE * 200));
 
 		if (otherShip != null) {
-			final Vector3dc relTorque = torque;
 			torque = otherShip.getTransform().getShipToWorld().transformDirection(torque, new Vector3d());
-			otherShip.applyRotDependentTorque(relTorque);
+			otherShip.applyInvariantTorque(torque);
 		}
 		if (ship != null) {
 			ship.applyInvariantTorque(torque.negate(new Vector3d()));

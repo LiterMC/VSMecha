@@ -1,6 +1,7 @@
 package com.github.litermc.vsmecha.block.energy;
 
 import com.github.litermc.vsmecha.Constants;
+import com.github.litermc.vsmecha.block.port.EnergyPortBlockEntity;
 
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;

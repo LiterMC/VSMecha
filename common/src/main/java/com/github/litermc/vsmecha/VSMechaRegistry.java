@@ -7,8 +7,6 @@ package com.github.litermc.vsmecha;
 import com.github.litermc.vsmecha.block.control.CapsuleHeadBlock;
 import com.github.litermc.vsmecha.block.control.CapsuleSeatBlock;
 import com.github.litermc.vsmecha.block.control.CapsuleSeatBlockEntity;
-import com.github.litermc.vsmecha.block.energy.EnergyPortBlock;
-import com.github.litermc.vsmecha.block.energy.EnergyPortBlockEntity;
 import com.github.litermc.vsmecha.block.energy.PlasmaCapacitorBlock;
 import com.github.litermc.vsmecha.block.energy.PlasmaCapacitorBlockEntity;
 import com.github.litermc.vsmecha.block.energy.ThermalEnergyCoreBlock;
@@ -23,6 +21,10 @@ import com.github.litermc.vsmecha.block.joint.ServoBlock;
 import com.github.litermc.vsmecha.block.joint.ServoBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ServoHeadBlock;
 import com.github.litermc.vsmecha.block.joint.ServoHeadBlockEntity;
+import com.github.litermc.vsmecha.block.port.EnergyPortBlockEntity;
+import com.github.litermc.vsmecha.block.port.FluidPortBlockEntity;
+import com.github.litermc.vsmecha.block.port.ItemPortBlockEntity;
+import com.github.litermc.vsmecha.block.port.PortBlock;
 import com.github.litermc.vsmecha.block.radar.IFFBeaconBlock;
 import com.github.litermc.vsmecha.block.radar.IFFBeaconBlockEntity;
 import com.github.litermc.vsmecha.block.radar.IRSensorBlockEntity;
@@ -119,7 +121,6 @@ public final class VSMechaRegistry {
 				.isViewBlocking(Blocks::never)
 		));
 
-		public static final RegistryEntry<EnergyPortBlock> ENERGY_PORT = REGISTRY.register("energy_port", () -> new EnergyPortBlock(properties()));
 		public static final RegistryEntry<PlasmaCapacitorBlock> PLASMA_CAPACITOR = REGISTRY.register("plasma_capacitor", () -> new PlasmaCapacitorBlock(properties()));
 		public static final RegistryEntry<ThermalEnergyCoreBlock> THERMAL_ENERGY_CORE = REGISTRY.register("thermal_energy_core", () -> new ThermalEnergyCoreBlock(properties()));
 
@@ -130,6 +131,25 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<GimbalServoHeadBlock> GIMBAL_SERVO_HEAD = REGISTRY.register("gimbal_servo_head", () -> new GimbalServoHeadBlock(propertiesNoRedstone().noCollission()));
 		public static final RegistryEntry<ServoBlock> SERVO = REGISTRY.register("servo", () -> new ServoBlock(propertiesNoRedstone()));
 		public static final RegistryEntry<ServoHeadBlock> SERVO_HEAD = REGISTRY.register("servo_head", () -> new ServoHeadBlock(propertiesNoRedstone().noCollission()));
+
+		public static final RegistryEntry<PortBlock> ENERGY_PORT = REGISTRY.register("energy_port", () -> new PortBlock(propertiesNoRedstone()) {
+			@Override
+			public EnergyPortBlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
+				return new EnergyPortBlockEntity(pos, state);
+			}
+		});
+		public static final RegistryEntry<PortBlock> FLUID_PORT = REGISTRY.register("fluid_port", () -> new PortBlock(propertiesNoRedstone()) {
+			@Override
+			public FluidPortBlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
+				return new FluidPortBlockEntity(pos, state);
+			}
+		});
+		public static final RegistryEntry<PortBlock> ITEM_PORT = REGISTRY.register("item_port", () -> new PortBlock(propertiesNoRedstone()) {
+			@Override
+			public ItemPortBlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
+				return new ItemPortBlockEntity(pos, state);
+			}
+		});
 
 		public static final RegistryEntry<IFFBeaconBlock> IFF_BEACON = REGISTRY.register("iff_beacon", () -> new IFFBeaconBlock(properties()));
 		public static final RegistryEntry<RadarBlock> IR_SENSOR = REGISTRY.register("ir_sensor", () -> new RadarBlock(properties()) {
@@ -200,7 +220,6 @@ public final class VSMechaRegistry {
 
 		public static final RegistryEntry<BlockEntityType<CapsuleSeatBlockEntity>> CAPSULE_SEAT = of("capsule_seat", CapsuleSeatBlockEntity::new, Blocks.CAPSULE_SEAT);
 
-		public static final RegistryEntry<BlockEntityType<EnergyPortBlockEntity>> ENERGY_PORT = of("energy_port", EnergyPortBlockEntity::new, Blocks.ENERGY_PORT);
 		public static final RegistryEntry<BlockEntityType<PlasmaCapacitorBlockEntity>> PLASMA_CAPACITOR = of("plasma_capacitor", PlasmaCapacitorBlockEntity::new, Blocks.PLASMA_CAPACITOR);
 		public static final RegistryEntry<BlockEntityType<ThermalEnergyCoreBlockEntity>> THERMAL_ENERGY_CORE = of("thermal_energy_core", ThermalEnergyCoreBlockEntity::new, Blocks.THERMAL_ENERGY_CORE);
 
@@ -209,6 +228,10 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<BlockEntityType<GimbalServoHeadBlockEntity>> GIMBAL_SERVO_HEAD = of("gimbal_servo_head", GimbalServoHeadBlockEntity::new, Blocks.GIMBAL_SERVO_HEAD);
 		public static final RegistryEntry<BlockEntityType<ServoBlockEntity>> SERVO = of("servo", ServoBlockEntity::new, Blocks.SERVO);
 		public static final RegistryEntry<BlockEntityType<ServoHeadBlockEntity>> SERVO_HEAD = of("servo_head", ServoHeadBlockEntity::new, Blocks.SERVO_HEAD);
+
+		public static final RegistryEntry<BlockEntityType<EnergyPortBlockEntity>> ENERGY_PORT = of("energy_port", EnergyPortBlockEntity::new, Blocks.ENERGY_PORT);
+		public static final RegistryEntry<BlockEntityType<FluidPortBlockEntity>> FLUID_PORT = of("fluid_port", FluidPortBlockEntity::new, Blocks.FLUID_PORT);
+		public static final RegistryEntry<BlockEntityType<ItemPortBlockEntity>> ITEM_PORT = of("item_port", ItemPortBlockEntity::new, Blocks.ITEM_PORT);
 
 		public static final RegistryEntry<BlockEntityType<IFFBeaconBlockEntity>> IFF_BEACON = of("iff_beacon", IFFBeaconBlockEntity::new, Blocks.IFF_BEACON);
 		public static final RegistryEntry<BlockEntityType<IRSensorBlockEntity>> IR_SENSOR = of("ir_sensor", IRSensorBlockEntity::new, Blocks.IR_SENSOR);
@@ -263,10 +286,6 @@ public final class VSMechaRegistry {
 			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON).stacksTo(1))
 		);
 
-		public static final RegistryEntry<BlockItem> ENERGY_PORT = ofBlock(
-			Blocks.ENERGY_PORT,
-			(block, props) -> new BlockItem(block, props)
-		);
 		public static final RegistryEntry<BlockItem> PLASMA_CAPACITOR = ofBlock(
 			Blocks.PLASMA_CAPACITOR,
 			(block, props) -> new BlockItem(block, props.rarity(Rarity.EPIC).stacksTo(1))
@@ -295,6 +314,19 @@ public final class VSMechaRegistry {
 		public static final RegistryEntry<BlockItem> SERVO_HEAD = ofBlock(
 			Blocks.SERVO_HEAD,
 			(block, props) -> new BlockItem(block, props.rarity(Rarity.UNCOMMON))
+		);
+
+		public static final RegistryEntry<BlockItem> ENERGY_PORT = ofBlock(
+			Blocks.ENERGY_PORT,
+			(block, props) -> new BlockItem(block, props)
+		);
+		public static final RegistryEntry<BlockItem> FLUID_PORT = ofBlock(
+			Blocks.FLUID_PORT,
+			(block, props) -> new BlockItem(block, props)
+		);
+		public static final RegistryEntry<BlockItem> ITEM_PORT = ofBlock(
+			Blocks.ITEM_PORT,
+			(block, props) -> new BlockItem(block, props)
 		);
 
 		public static final RegistryEntry<BlockItem> IFF_BEACON = ofBlock(

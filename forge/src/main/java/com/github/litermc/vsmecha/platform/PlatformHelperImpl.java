@@ -66,9 +66,12 @@ import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLLoader;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import net.minecraftforge.items.wrapper.SidedInvWrapper;
 import net.minecraftforge.network.NetworkHooks;
@@ -187,6 +190,26 @@ public class PlatformHelperImpl implements PlatformHelper {
 		return storage == null ? null : new WrappedEnergyStorage(storage);
 	}
 
+	@Override
+	public FluidInterface getFluidInterface(final ServerLevel level, final BlockPos pos, final Direction dir) {
+		final BlockEntity be = level.getBlockEntity(pos);
+		if (be == null) {
+			return null;
+		}
+		final IFluidHandler handler = be.getCapability(ForgeCapabilities.FLUID_HANDLER, dir).orElse(null);
+		return handler == null ? null : new WrappedFluidHandler(handler);
+	}
+
+	@Override
+	public ItemInterface getItemInterface(final ServerLevel level, final BlockPos pos, final Direction dir) {
+		final BlockEntity be = level.getBlockEntity(pos);
+		if (be == null) {
+			return null;
+		}
+		final IItemHandler handler = be.getCapability(ForgeCapabilities.ITEM_HANDLER, dir).orElse(null);
+		return handler == null ? null : new WrappedItemHandler(handler);
+	}
+
 	private record RegistryWrapperImpl<T>(
 		ResourceLocation name, ForgeRegistry<T> registry
 	) implements RegistryWrappers.RegistryWrapper<T> {
@@ -264,6 +287,41 @@ public class PlatformHelperImpl implements PlatformHelper {
 		@Override
 		public int pullEnergy(final int needs, final boolean simulate) {
 			return this.storage.extractEnergy(needs, simulate);
+		}
+	}
+
+	private record WrappedFluidHandler(IFluidHandler handler) implements FluidInterface {
+		@Override
+		public int pushFluid(final Stack available, final boolean simulate) {
+			return this.handler.fill(((WrappedFluidStack) (available)).stack(), simulate ? IFluidHandler.FluidAction.SIMULATE : IFluidHandler.FluidAction.EXECUTE);
+		}
+
+		@Override
+		public int pullFluid(final Stack needs, final boolean simulate) {
+			return this.handler.drain(((WrappedFluidStack) (needs)).stack(), simulate ? IFluidHandler.FluidAction.SIMULATE : IFluidHandler.FluidAction.EXECUTE).getAmount();
+		}
+	}
+
+	private record WrappedItemHandler(IItemHandler handler) implements ItemInterface {
+		@Override
+		public int pushItem(final ItemStack available, final boolean simulate) {
+			final ItemStack remaining = ItemHandlerHelper.insertItemStacked(this.handler, available, simulate);
+			return available.getCount() - remaining.getCount();
+		}
+
+		@Override
+		public int pullItem(final ItemStack needs, final boolean simulate) {
+			int needsCount = needs.getCount();
+			int pulled = 0;
+			for (int i = 0; needsCount > 0 && i < this.handler.getSlots(); i++) {
+				if (!ItemStack.isSameItemSameTags(needs, this.handler.getStackInSlot(i))) {
+					continue;
+				}
+				final int extracted = this.handler.extractItem(i, needsCount, simulate).getCount();
+				needsCount -= extracted;
+				pulled += extracted;
+			}
+			return pulled;
 		}
 	}
 }

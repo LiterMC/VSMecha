@@ -31,8 +31,12 @@ import net.fabricmc.fabric.api.resource.conditions.v1.ResourceConditions;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
 import net.fabricmc.fabric.api.tag.convention.v1.ConventionalItemTags;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.fabricmc.fabric.api.transfer.v1.item.InventoryStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.commands.synchronization.ArgumentTypeInfo;
@@ -200,6 +204,18 @@ public final class PlatformHelperImpl implements PlatformHelper {
 		return storage == null ? null : new WrappedEnergyStorage(storage);
 	}
 
+	@Override
+	public FluidInterface getFluidInterface(final ServerLevel level, final BlockPos pos, final Direction dir) {
+		final Storage<FluidVariant> storage = FluidStorage.SIDED.find(level, pos, dir);
+		return storage == null ? null : new WrappedFluidStorage(storage);
+	}
+
+	@Override
+	public ItemInterface getItemInterface(final ServerLevel level, final BlockPos pos, final Direction dir) {
+		final Storage<ItemVariant> storage = ItemStorage.SIDED.find(level, pos, dir);
+		return storage == null ? null : new WrappedItemStorage(storage);
+	}
+
 	private record RegistryWrapperImpl<T>(
 		ResourceLocation name, Registry<T> registry
 	) implements RegistryWrappers.RegistryWrapper<T> {
@@ -331,6 +347,64 @@ public final class PlatformHelperImpl implements PlatformHelper {
 				final Transaction transaction = Transaction.openOuter()
 			) {
 				final int extracted = (int) (this.storage.extract(needs, transaction));
+				if (!simulate) {
+					transaction.commit();
+				}
+				return extracted;
+			}
+		}
+	}
+
+	private record WrappedFluidStorage(Storage<FluidVariant> storage) implements FluidInterface {
+		@Override
+		public int pushFluid(final Stack available, final boolean simulate) {
+			final WrappedFluidStack available0 = (WrappedFluidStack) (available);
+			try (
+				final Transaction transaction = Transaction.openOuter()
+			) {
+				final int inserted = (int) (this.storage.insert(available0.fluid(), available0.amount(), transaction));
+				if (!simulate) {
+					transaction.commit();
+				}
+				return inserted;
+			}
+		}
+
+		@Override
+		public int pullFluid(final Stack needs, final boolean simulate) {
+			final WrappedFluidStack needs0 = (WrappedFluidStack) (needs);
+			try (
+				final Transaction transaction = Transaction.openOuter()
+			) {
+				final int extracted = (int) (this.storage.extract(needs0.fluid(), needs0.amount(), transaction));
+				if (!simulate) {
+					transaction.commit();
+				}
+				return extracted;
+			}
+		}
+	}
+
+	private record WrappedItemStorage(Storage<ItemVariant> storage) implements ItemInterface {
+		@Override
+		public int pushItem(final ItemStack available, final boolean simulate) {
+			try (
+				final Transaction transaction = Transaction.openOuter()
+			) {
+				final int inserted = (int) (this.storage.insert(ItemVariant.of(available), available.getCount(), transaction));
+				if (!simulate) {
+					transaction.commit();
+				}
+				return inserted;
+			}
+		}
+
+		@Override
+		public int pullItem(final ItemStack needs, final boolean simulate) {
+			try (
+				final Transaction transaction = Transaction.openOuter()
+			) {
+				final int extracted = (int) (this.storage.extract(ItemVariant.of(needs), needs.getCount(), transaction));
 				if (!simulate) {
 					transaction.commit();
 				}

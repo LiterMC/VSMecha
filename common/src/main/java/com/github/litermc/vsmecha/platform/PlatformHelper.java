@@ -207,6 +207,10 @@ public interface PlatformHelper {
 
 	EnergyInterface getEnergyInterface(ServerLevel level, BlockPos pos, Direction dir);
 
+	FluidInterface getFluidInterface(ServerLevel level, BlockPos pos, Direction dir);
+
+	ItemInterface getItemInterface(ServerLevel level, BlockPos pos, Direction dir);
+
 	final class Instance {
 		static final @Nullable PlatformHelper INSTANCE;
 		static final @Nullable Throwable ERROR;

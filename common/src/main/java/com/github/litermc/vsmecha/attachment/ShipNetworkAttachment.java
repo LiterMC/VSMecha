@@ -4,15 +4,18 @@ import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
 import com.github.litermc.vsmecha.block.IPhysTickableBlockEntity;
 import com.github.litermc.vsmecha.block.energy.IEnergyBlockEntity;
 import com.github.litermc.vsmecha.block.joint.IJointBlockEntity;
+import com.github.litermc.vsmecha.block.port.IPortBlockEntity;
 import com.github.litermc.vsmecha.block.radar.IFFBeaconBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipGlobalWiredElement;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
 import com.github.litermc.vsmecha.util.LevelUtil;
+import com.github.litermc.vsmecha.util.ShipUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -30,15 +33,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 import kotlin.jvm.functions.Function1;
 
 @JsonAutoDetect(
@@ -53,13 +60,14 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 	private final Map<BlockPos, IPhysTickableBlockEntity> physTickers = new ConcurrentHashMap<>();
 	private final Set<BlockPos> iffBeacons = new HashSet<>();
 	private final Map<BlockPos, Object> peripherals = new HashMap<>();
+	private final Map<Object, Set<BlockPos>> ports = new IdentityHashMap<>();
 
 	private boolean ticking = false;
 	private BlockPos lastIFFBeacon = null;
 	private long lastTickAvailableEnergy = 0;
 	private long lastTickUsedEnergy = 0;
 	private NavigableSet<PrioEnergyRecord> lastTickedEnergyBlocks = Collections.emptyNavigableSet();
-	private Set<ShipNetworkAttachment> lastTickedNetworks = Collections.emptySet();
+	private List<ShipNetworkAttachment> lastTickedNetworks = Collections.emptyList();
 
 	private Object /*WiredNode*/ globalNode = null;
 
@@ -98,6 +106,36 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 		return this.globalNode;
 	}
 
+	private Stream<BlockPos> streamConnectedPorts0(final IPortBlockEntity be) {
+		final Set<BlockPos> blocks = this.ports.get(be.getPortType());
+		return blocks == null ? Stream.empty() : blocks.stream();
+	}
+
+	private <B extends BlockEntity & IPortBlockEntity> Stream<BlockEntity> streamConnectedPorts1(final B be) {
+		final Object portType = be.getPortType();
+		final String channel = be.getPortChannel();
+		final Level level = be.getLevel();
+		final BlockPos pos = be.getBlockPos();
+		return this.lastTickedNetworks.stream()
+			.flatMap((network) -> network.streamConnectedPorts0(be))
+			.filter(Predicate.not(pos::equals))
+			.map(level::getBlockEntity)
+			.filter(Objects::nonNull)
+			.filter(Predicate.not(BlockEntity::isRemoved))
+			.filter((b) ->
+				b instanceof final IPortBlockEntity pb &&
+				pb.getPortType() == portType &&
+				pb.getPortChannel().equals(channel)
+			);
+	}
+
+	public static <B extends BlockEntity & IPortBlockEntity> Stream<BlockEntity> streamAvailablePorts(final B be) {
+		if (!(ShipUtil.getServerShip((ServerLevel) (be.getLevel()), be.getBlockPos()) instanceof final LoadedServerShip ship)) {
+			return Stream.empty();
+		}
+		return get(ship).streamConnectedPorts1(be);
+	}
+
 	public void addBlockEntity(final BlockEntity be) {
 		final BlockPos pos = be.getBlockPos();
 		if (be instanceof IEnergyBlockEntity) {
@@ -106,18 +144,21 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 		if (be instanceof IJointBlockEntity) {
 			this.joints.add(pos);
 		}
-		if (be instanceof IPhysTickableBlockEntity ticker) {
+		if (be instanceof final IPhysTickableBlockEntity ticker) {
 			this.physTickers.put(pos, ticker);
 		}
 		if (be instanceof IFFBeaconBlockEntity) {
 			this.iffBeacons.add(pos);
 		}
+		if (be instanceof final IPortBlockEntity pbe) {
+			this.ports.computeIfAbsent(pbe.getPortType(), (k) -> new HashSet<>()).add(pos);
+		}
 	}
 
 	public void registerPeripheral(final BlockEntity be) {
 		if (
-			be instanceof IPeripheralBlockEntity pbe &&
-			pbe.getShipModemPeripheral() instanceof ShipModemPeripheral modem
+			be instanceof final IPeripheralBlockEntity pbe &&
+			pbe.getShipModemPeripheral() instanceof final ShipModemPeripheral modem
 		) {
 			if (this.peripherals.put(be.getBlockPos(), modem) != modem) {
 				((WiredNode) (this.getGlobalNode((ServerLevel) (be.getLevel())))).connectTo(modem.getElement().getNode());
@@ -141,6 +182,9 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 		}
 		if (CompatMods.COMPUTERCRAFT.isLoaded() && be instanceof IPeripheralBlockEntity) {
 			this.peripherals.remove(be);
+		}
+		if (be instanceof final IPortBlockEntity pbe) {
+			this.ports.get(pbe.getPortType()).remove(pos);
 		}
 	}
 
@@ -239,7 +283,7 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 			final Iterator<BlockPos> ebeIter = network.energyBlocks.iterator();
 			while (ebeIter.hasNext()) {
 				final BlockPos pos = ebeIter.next();
-				if (!(level.getBlockEntity(pos) instanceof IEnergyBlockEntity ebe)) {
+				if (!(level.getBlockEntity(pos) instanceof final IEnergyBlockEntity ebe)) {
 					ebeIter.remove();
 					continue;
 				}
@@ -257,6 +301,18 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 					final ShipModemPeripheral modem = (ShipModemPeripheral) (network.peripherals.get(pos));
 					pbeIter.remove();
 					modem.getElement().getNode().remove();
+				}
+			}
+
+			for (final Map.Entry<Object, Set<BlockPos>> entry : network.ports.entrySet()) {
+				final Object portType = entry.getKey();
+				final Iterator<BlockPos> portIter = entry.getValue().iterator();
+				while (portIter.hasNext()) {
+					final BlockPos pos = portIter.next();
+					if (!(level.getBlockEntity(pos) instanceof final IPortBlockEntity pbe) || pbe.getPortType() != portType) {
+						portIter.remove();
+						continue;
+					}
 				}
 			}
 		}
@@ -287,11 +343,14 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 			}
 		}
 
+		final List<ShipNetworkAttachment> lastTickedNetworks = List.copyOf(networks);
+
 		for (final ShipNetworkAttachment network : networks) {
 			network.lastIFFBeacon = iffBeacon;
 			network.lastTickAvailableEnergy = tickAvailableEnergy;
 			network.lastTickUsedEnergy = tickUsedEnergy;
 			network.lastTickedEnergyBlocks = sortedEnergyBlocks;
+			network.lastTickedNetworks = lastTickedNetworks;
 		}
 	}
 
