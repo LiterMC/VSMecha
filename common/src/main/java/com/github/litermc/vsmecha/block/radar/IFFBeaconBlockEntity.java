@@ -25,6 +25,8 @@ import java.util.Set;
 import java.util.UUID;
 
 public class IFFBeaconBlockEntity extends EnergyBasedBlockEntity {
+	private static final int MAX_RANGE = 160;
+
 	private Mode mode = Mode.BROADCAST;
 	private volatile HostileMode hostileMode = HostileMode.NONE;
 	private final LongOpenHashSet knownAllies = new LongOpenHashSet();
@@ -72,6 +74,7 @@ public class IFFBeaconBlockEntity extends EnergyBasedBlockEntity {
 	}
 
 	public void addToWhitelist(final UUID owner) {
+		this.hostiles.remove(owner);
 		this.whitelist.add(owner);
 	}
 
@@ -88,7 +91,12 @@ public class IFFBeaconBlockEntity extends EnergyBasedBlockEntity {
 		this.hostileShips.remove(shipId);
 	}
 
+	public Set<UUID> getHostiles() {
+		return this.hostiles;
+	}
+
 	public void markHostile(final UUID owner) {
+		this.whitelist.remove(owner);
 		this.hostiles.add(owner);
 	}
 

@@ -23,7 +23,11 @@ public final class OmegaPID extends PID {
 		double output = this.kp * error + this.ki * integral - this.kd * (currentVelocity - this.lastVel) / dt;
 		this.lastVel = currentVelocity;
 		if (Math.abs(output) > this.maxOutput) {
-			output = Math.signum(output) * this.maxOutput;
+			final double sig = Math.signum(output);
+			output = sig * this.maxOutput;
+			if (sig == Math.signum(this.integral - integral)) {
+				this.integral = integral;
+			}
 		} else {
 			this.integral = integral;
 		}

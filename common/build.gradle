@@ -18,6 +18,7 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
 
 	compileOnly group: 'org.spongepowered', name: 'mixin', version: '0.8.5'
+	compileOnly annotationProcessor("io.github.llamalad7:mixinextras-common:0.5.0")
 	implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
 
 	implementation "com.google.auto.service:auto-service:1.1.1"
@@ -39,7 +40,7 @@ dependencies {
 
 	compileOnly "cc.tweaked:cc-tweaked-${minecraft_version}-common:${cct_version}"
 
-	modCompileOnly "com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}"
+	modCompileOnly "com.simibubi.create:create-fabric:${create_fabric_version}"
 }
 
 configurations {

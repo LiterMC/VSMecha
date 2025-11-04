@@ -24,7 +24,6 @@ public final class TaskUtil {
 	}
 
 	public static void postServerTick() {
-		tick++;
 		final long t = tick;
 		for (int i = TICK_START_QUEUE.size(); i > 0; i--) {
 			final Task task = TICK_START_QUEUE.element();

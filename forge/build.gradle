@@ -39,7 +39,9 @@ dependencies {
 	include modApi("dev.architectury:architectury-forge:${architectury_version}")
 
 	compileOnly project(":common")
-	annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT:processor")
+	annotationProcessor "org.spongepowered:mixin:0.8.5-SNAPSHOT:processor"
+	compileOnly annotationProcessor("io.github.llamalad7:mixinextras-common:0.5.0")
+	implementation include("io.github.llamalad7:mixinextras-forge:0.5.0")
 	implementation "com.google.auto.service:auto-service:1.1.1"
 	annotationProcessor "com.google.auto.service:auto-service:1.1.1"
 

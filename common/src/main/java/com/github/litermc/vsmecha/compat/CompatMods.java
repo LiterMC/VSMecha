@@ -4,6 +4,7 @@ import com.github.litermc.vsmecha.platform.PlatformHelper;
 
 public enum CompatMods {
 	COMPUTERCRAFT("computercraft"),
+	CREATE("create"),
 	JADE("jade");
 
 	private final String modId;

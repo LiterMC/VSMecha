@@ -5,8 +5,16 @@
 	"refmap": "${mod_id}.refmap.json",
 	"compatibilityLevel": "JAVA_17",
 	"mixins": [
+		"MixinBlock",
 		"MixinEntity",
-		"MixinPlayerList"
+		"MixinLevelChunk",
+		"MixinPlayerList",
+		"create.MixinBeltBlockEntity",
+		"create.MixinClockworkBearingBlockEntity",
+		"create.MixinControlledContraptionEntity",
+		"create.MixinKineticBlockEntity",
+		"create.MixinLinearActuatorBlockEntity",
+		"create.MixinMechanicalBearingBlockEntity"
 	],
 	"client": [
 	],
