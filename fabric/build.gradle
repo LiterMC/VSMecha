@@ -23,11 +23,10 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
 	include modApi("teamreborn:energy:3.0.0")
-	implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
-	implementation project(":common")
+
+	compileOnly project(":common")
 	compileOnly annotationProcessor("io.github.llamalad7:mixinextras-common:0.5.0")
-	implementation "com.google.auto.service:auto-service:1.1.1"
-	annotationProcessor "com.google.auto.service:auto-service:1.1.1"
+	implementation annotationProcessor("com.google.auto.service:auto-service:1.1.1")
 
 	include implementation("com.electronwill.night-config:core:3.8.1")
 	include implementation("com.electronwill.night-config:toml:3.8.1")
@@ -35,7 +34,12 @@ dependencies {
 	modRuntimeOnly "com.terraformersmc:modmenu:3.2.3"
 	modRuntimeOnly "me.shedaniel.cloth:cloth-config:${cloth_config_version}"
 
-	modCompileOnly "org.valkyrienskies:valkyrienskies-120-fabric:${vs2_version}"
+	modApi("org.valkyrienskies:valkyrienskies-120-fabric:${vs2_version}") { transitive = false }
+
+	implementation "org.valkyrienskies.core:api:${vs_core_version}"
+	implementation "org.valkyrienskies.core:impl:${vs_core_version}"
+	implementation "org.valkyrienskies.core:internal:${vs_core_version}"
+	implementation "org.valkyrienskies.core:util:${vs_core_version}"
 
 	modCompileOnly "maven.modrinth:jade:${jade_version}+fabric"
 	modRuntimeOnly "maven.modrinth:jade:${jade_version}+fabric"

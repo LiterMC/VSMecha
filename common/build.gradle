@@ -17,19 +17,17 @@ dependencies {
 	// Do NOT use other classes from fabric loader
 	modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
 
-	compileOnly group: 'org.spongepowered', name: 'mixin', version: '0.8.5'
+	compileOnly "org.spongepowered:mixin:0.8.5"
 	compileOnly annotationProcessor("io.github.llamalad7:mixinextras-common:0.5.0")
-	implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
 
-	implementation "com.google.auto.service:auto-service:1.1.1"
-	annotationProcessor "com.google.auto.service:auto-service:1.1.1"
+	implementation annotationProcessor("com.google.auto.service:auto-service:1.1.1")
 
 	modApi "org.valkyrienskies:valkyrienskies-120-common:${vs2_version}"
 
 	implementation "org.valkyrienskies.core:api:${vs_core_version}"
-	implementation "org.valkyrienskies.core:api-game:${vs_core_version}"
-	implementation "org.valkyrienskies.core:util:${vs_core_version}"
 	implementation "org.valkyrienskies.core:impl:${vs_core_version}"
+	implementation "org.valkyrienskies.core:internal:${vs_core_version}"
+	implementation "org.valkyrienskies.core:util:${vs_core_version}"
 
 	compileOnly "cc.tweaked:cc-tweaked-${minecraft_version}-common:${cct_version}"
 
