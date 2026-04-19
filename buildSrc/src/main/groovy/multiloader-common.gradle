@@ -312,7 +312,9 @@ processResources {
 			'description' : project.description,
 			'github_repo' : github_repo,
 
-			'vtil_version' : vtil_version,
+			'vs2_version_max' : vs2_version_max,
+			'vs2_version_min' : vs2_version_min,
+			'vtil_version'    : vtil_version,
 	]
 
 	var jsonExpandProps = expandProps.collectEntries {

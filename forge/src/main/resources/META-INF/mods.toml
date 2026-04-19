@@ -30,7 +30,7 @@ side = "BOTH"
 [[dependencies.${mod_id}]]
 modId = "valkyrienskies"
 mandatory = true
-versionRange = "[2.4,2.5)"
+versionRange = "[${vs2_version_min},${vs2_version_max})"
 ordering = "AFTER" # AFTER: your mod loads after the dependency; BEFORE: your mod loads before the dependency
 side = "BOTH"
 

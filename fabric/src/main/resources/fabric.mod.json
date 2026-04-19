@@ -32,7 +32,7 @@
 		"fabricloader": ">=${fabric_loader_version}",
 		"java": ">=${java_version}",
 		"minecraft": "${minecraft_version}",
-		"valkyrienskies": "[2.4,2.5)",
+		"valkyrienskies": ">=${vs2_version_min} <${vs2_version_max}",
 		"vtil": ">=${vtil_version}"
 	}
 }
