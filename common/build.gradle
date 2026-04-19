@@ -24,13 +24,6 @@ dependencies {
 	implementation "com.google.auto.service:auto-service:1.1.1"
 	annotationProcessor "com.google.auto.service:auto-service:1.1.1"
 
-	// Architectury API
-	// NOTE: This is only for the platform-independent API stuff.
-	// This WILL make your Forge jar depend on Architectury API
-	// This is OPTIONAL. You can still use architectury, just without this API.
-	// (You'll just have to do more loader-specific stuff)
-	modApi "dev.architectury:architectury:${architectury_version}"
-
 	modApi "org.valkyrienskies:valkyrienskies-120-common:${vs2_version}"
 
 	implementation "org.valkyrienskies.core:api:${vs_core_version}"

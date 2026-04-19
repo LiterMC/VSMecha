@@ -4,7 +4,6 @@ import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
 
 import net.minecraft.world.level.block.entity.BlockEntity;
 
-import dan200.computercraft.api.lua.LuaFunction;
 import dan200.computercraft.api.peripheral.IPeripheral;
 
 public abstract class BasePeripheral<T extends BlockEntity & IPeripheralBlockEntity> implements IPeripheral {

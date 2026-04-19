@@ -6,7 +6,6 @@ import com.github.litermc.vsmecha.util.DestroyUtil;
 import com.github.litermc.vsmecha.util.LevelUtil;
 import com.github.litermc.vsmecha.util.PredictUtil;
 import com.github.litermc.vsmecha.util.TaskUtil;
-import com.github.litermc.vsmecha.util.split.Splitter;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -29,7 +28,6 @@ public final class VSMechaListeners {
 
 	public static void postServerTick(final MinecraftServer server) {
 		ShipNetworkAttachment.postServerTick(server);
-		Splitter.postServerTick();
 		TaskUtil.postServerTick();
 		PredictUtil.postServerTick();
 	}

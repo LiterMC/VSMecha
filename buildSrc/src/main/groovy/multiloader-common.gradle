@@ -40,6 +40,21 @@ repositories {
 
 	exclusiveContent {
 		forRepository {
+			mavenLocal()
+		}
+		forRepository {
+			maven {
+				name = 'LiterMC maven'
+				url = 'https://litermc.github.io/maven/'
+			}
+		}
+		filter {
+			includeGroupAndSubgroups('com.github.litermc')
+		}
+	}
+
+	exclusiveContent {
+		forRepository {
 			maven {
 				name = 'ParchmentMC'
 				url = 'https://maven.parchmentmc.org'
@@ -280,23 +295,24 @@ jar {
 
 processResources {
 	var expandProps = [
-			'version'                      : version,
-			'group'                        : project.group, // Else we target the task's group.
-			'java_version'                 : java_version,
+			'version'      : version,
+			'group'        : project.group, // Else we target the task's group.
+			'java_version' : java_version,
 
-			'minecraft_version'            : minecraft_version,
-			'minecraft_version_range'      : minecraft_version_range,
-			'fabric_loader_version'        : fabric_loader_version,
-			'forge_version'                : forge_version,
-			'forge_loader_version_range'   : forge_loader_version_range,
+			'minecraft_version'          : minecraft_version,
+			'fabric_loader_version'      : fabric_loader_version,
+			'forge_version'              : forge_version,
+			'forge_loader_version_range' : forge_loader_version_range,
 
-			'mod_name'                     : mod_name,
-			'mod_author'                   : mod_author,
-			'mod_id'                       : mod_id,
-			'license'                      : license,
-			'credits'                      : credits,
-			'description'                  : project.description,
-			'github_repo'                  : github_repo,
+			'mod_name'    : mod_name,
+			'mod_author'  : mod_author,
+			'mod_id'      : mod_id,
+			'license'     : license,
+			'credits'     : credits,
+			'description' : project.description,
+			'github_repo' : github_repo,
+
+			'vtil_version' : vtil_version,
 	]
 
 	var jsonExpandProps = expandProps.collectEntries {

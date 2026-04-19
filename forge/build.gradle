@@ -36,8 +36,6 @@ dependencies {
 	api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10"
 	forge "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
-	include modApi("dev.architectury:architectury-forge:${architectury_version}")
-
 	compileOnly project(":common")
 	annotationProcessor "org.spongepowered:mixin:0.8.5-SNAPSHOT:processor"
 	compileOnly annotationProcessor("io.github.llamalad7:mixinextras-common:0.5.0")
