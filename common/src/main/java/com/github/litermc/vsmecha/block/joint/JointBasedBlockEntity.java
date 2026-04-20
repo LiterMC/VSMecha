@@ -32,11 +32,11 @@ public abstract class JointBasedBlockEntity extends EnergyBasedBlockEntity imple
 	protected abstract void rebuildJoints();
 
 	protected void removeJoints() {
+		final int[] joints = this.getJointIds();
+		if (joints == null) {
+			return;
+		}
 		TaskUtil.queuePhysicsTick((ServerLevel) (this.getLevel()), (world) -> {
-			final int[] joints = this.getJointIds();
-			if (joints == null) {
-				return;
-			}
 			final VsiPhysLevel physWorld = (VsiPhysLevel) world;
 			for (final int id : joints) {
 				physWorld.removeJoint(id);
