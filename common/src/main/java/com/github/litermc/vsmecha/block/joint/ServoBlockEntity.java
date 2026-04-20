@@ -3,7 +3,6 @@ package com.github.litermc.vsmecha.block.joint;
 import com.github.litermc.vsmecha.VSMechaRegistry;
 import com.github.litermc.vsmecha.compat.computercraft.ServoPeripheral;
 import com.github.litermc.vsmecha.util.MathUtil;
-import com.github.litermc.vsmecha.util.ShipUtil;
 import com.github.litermc.vsmecha.util.pid.AnglePID;
 import com.github.litermc.vsmecha.util.pid.OmegaPID;
 import com.github.litermc.vsmecha.util.pid.PID;
@@ -11,8 +10,6 @@ import com.github.litermc.vsmecha.util.pid.PID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -23,16 +20,16 @@ import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.PhysShip;
-import org.valkyrienskies.core.apigame.constraints.VSAttachmentConstraint;
-import org.valkyrienskies.core.apigame.constraints.VSConstraint;
-import org.valkyrienskies.core.apigame.constraints.VSHingeOrientationConstraint;
-
-import dan200.computercraft.api.network.wired.WiredNode;
+import org.valkyrienskies.core.internal.joints.VSJoint;
+import org.valkyrienskies.core.internal.joints.VSJointMaxForceTorque;
+import org.valkyrienskies.core.internal.joints.VSJointPose;
+import org.valkyrienskies.core.internal.joints.VSRevoluteJoint;
 
 public class ServoBlockEntity extends AbstractServoBlockEntity {
 	private static final Quaterniondc FREEROT_QUAT = new Quaterniond(new AxisAngle4d(Math.PI / 2, 0, 0, 1));
-	private static final double ATTACH_COMPLIANCE = 0;
-	private static final double ATTACH_MAX_FORCE = Double.POSITIVE_INFINITY;
+	private static final double JOINT_COMPLIANCE = 1e-13;
+	private static final double JOINT_MAX_FORCE = 1e13;
+	private static final VSJointMaxForceTorque JOINT_MAX_FORCE_TORQUE = new VSJointMaxForceTorque((float) JOINT_MAX_FORCE, (float) JOINT_MAX_FORCE);
 	// private static final double ROTATE_COMPLIANCE = 0;
 	private static final double ROTATE_MAX_FORCE = 1e13;
 
@@ -193,20 +190,6 @@ public class ServoBlockEntity extends AbstractServoBlockEntity {
 		return MathUtil.normalizeAngle(2 * Math.atan2(dot, relRot.w));
 	}
 
-	protected VSConstraint createFreeRotationConstraint() {
-		final ServerLevel level = (ServerLevel) (this.getLevel());
-		final Quaterniondc baseRot = new Quaterniond(this.getDirection().getRotation()).mul(FREEROT_QUAT);
-		final Quaterniond otherRot = new Quaterniond(this.headDirOppo.getRotation()).mul(FREEROT_QUAT);
-		return new VSHingeOrientationConstraint(
-			ShipUtil.getShipOrDimId(level, this.getBlockPos()),
-			ShipUtil.getShipOrDimId(level, this.headPos),
-			ATTACH_COMPLIANCE,
-			baseRot,
-			otherRot,
-			ATTACH_MAX_FORCE
-		);
-	}
-
 	@Override
 	protected Object createPeripheral() {
 		return new ServoPeripheral(this);
@@ -227,29 +210,34 @@ public class ServoBlockEntity extends AbstractServoBlockEntity {
 	}
 
 	@Override
-	protected void rebuildConstraints() {
-		super.rebuildConstraints();
+	protected void rebuildJoints() {
+		super.rebuildJoints();
 		if (this.isAttached()) {
 			this.angle = this.readAngle();
 		}
 	}
 
 	@Override
-	protected VSConstraint[] rebuildConstraintsFor(final long selfId, final long otherId) {
+	protected VSJoint[] rebuildJointsFor(final long selfId, final long otherId) {
 		final BlockPos pos = this.getBlockPos();
 		final BlockPos headPos = this.headPos;
+		final Quaterniondc baseRot = new Quaterniond(this.getDirection().getRotation()).mul(FREEROT_QUAT);
+		final Quaterniondc otherRot = new Quaterniond(this.headDirOppo.getRotation()).mul(FREEROT_QUAT);
 
-		return new VSConstraint[]{
-			new VSAttachmentConstraint(
+		return new VSJoint[]{
+			new VSRevoluteJoint(
 				selfId,
+				new VSJointPose(new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5), baseRot),
 				otherId,
-				ATTACH_COMPLIANCE,
-				new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5),
-				new Vector3d(headPos.getX() + 0.5, headPos.getY() + 0.5, headPos.getZ() + 0.5),
-				ATTACH_MAX_FORCE,
-				0
-			),
-			this.createFreeRotationConstraint()
+				new VSJointPose(new Vector3d(headPos.getX() + 0.5, headPos.getY() + 0.5, headPos.getZ() + 0.5), otherRot),
+				JOINT_MAX_FORCE_TORQUE,
+				JOINT_COMPLIANCE,
+				null,
+				null,
+				null,
+				null,
+				null
+			)
 		};
 	}
 
@@ -292,10 +280,10 @@ public class ServoBlockEntity extends AbstractServoBlockEntity {
 		final Vector3d torque = axis.mul(force, new Vector3d());
 
 		if (otherShip != null) {
-			otherShip.applyInvariantTorque(torque);
+			otherShip.applyWorldTorque(torque);
 		}
 		if (ship != null) {
-			ship.applyInvariantTorque(torque.negate(new Vector3d()));
+			ship.applyWorldTorque(torque.negate(new Vector3d()));
 		}
 	}
 

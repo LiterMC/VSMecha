@@ -17,7 +17,7 @@ public class ModEntry implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		VSMechaRegistry.register();
+		VSMechaListeners.onModInit();
 		BlockCapabilityProviders.register();
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> VSMechaCommands.register(dispatcher));
@@ -42,5 +42,7 @@ public class ModEntry implements ModInitializer {
 		ServerTickEvents.START_SERVER_TICK.register(VSMechaListeners::preServerTick);
 		ServerTickEvents.END_SERVER_TICK.register(VSMechaListeners::postServerTick);
 		ServerTickEvents.END_WORLD_TICK.register(VSMechaListeners::postLevelTick);
+
+		VSMechaListeners.onModSetup();
 	}
 }

@@ -1,7 +1,5 @@
 package com.github.litermc.vsmecha.block.energy;
 
-import java.util.function.IntUnaryOperator;
-
 public interface IEnergyBlockEntity {
 	/**
 	 * Highest priority means energy will be provided first and drained last.

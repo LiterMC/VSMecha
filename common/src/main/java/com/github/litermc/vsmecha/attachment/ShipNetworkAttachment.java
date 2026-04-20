@@ -11,7 +11,6 @@ import com.github.litermc.vsmecha.compat.computercraft.network.ShipGlobalWiredEl
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
 import com.github.litermc.vsmecha.util.LevelUtil;
 import com.github.litermc.vsmecha.util.ShipUtil;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -19,14 +18,14 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import org.jetbrains.annotations.NotNull;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.PhysShip;
-import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.core.api.ships.ShipForcesInducer;
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
+import org.valkyrienskies.core.api.ships.ShipPhysicsListener;
+import org.valkyrienskies.core.api.world.PhysLevel;
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-import dan200.computercraft.api.network.wired.WiredNetworkChange;
 import dan200.computercraft.api.network.wired.WiredNode;
 
 import java.util.ArrayList;
@@ -41,12 +40,9 @@ import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
-import kotlin.jvm.functions.Function1;
 
 @JsonAutoDetect(
 	fieldVisibility = JsonAutoDetect.Visibility.NONE,
@@ -54,7 +50,7 @@ import kotlin.jvm.functions.Function1;
 	getterVisibility = JsonAutoDetect.Visibility.NONE,
 	setterVisibility = JsonAutoDetect.Visibility.NONE
 )
-public final class ShipNetworkAttachment implements ShipForcesInducer {
+public final class ShipNetworkAttachment implements ShipPhysicsListener {
 	private final Set<BlockPos> energyBlocks = new HashSet<>();
 	private final Set<BlockPos> joints = new HashSet<>();
 	private final Map<BlockPos, IPhysTickableBlockEntity> physTickers = new ConcurrentHashMap<>();
@@ -74,13 +70,7 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 	public ShipNetworkAttachment() {}
 
 	public static ShipNetworkAttachment get(final LoadedServerShip ship) {
-		final ShipNetworkAttachment attachment = ship.getAttachment(ShipNetworkAttachment.class);
-		if (attachment != null) {
-			return attachment;
-		}
-		final ShipNetworkAttachment newAttachment = new ShipNetworkAttachment();
-		ship.setAttachment(ShipNetworkAttachment.class, newAttachment);
-		return newAttachment;
+		return ship.getOrPutAttachment(ShipNetworkAttachment.class, ShipNetworkAttachment::new);
 	}
 
 	public Set<BlockPos> getEnergyBlocks() {
@@ -181,7 +171,7 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 			this.iffBeacons.remove(pos);
 		}
 		if (CompatMods.COMPUTERCRAFT.isLoaded() && be instanceof IPeripheralBlockEntity) {
-			this.peripherals.remove(be);
+			this.peripherals.remove(pos);
 		}
 		if (be instanceof final IPortBlockEntity pbe) {
 			this.ports.get(pbe.getPortType()).remove(pos);
@@ -189,11 +179,7 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 	}
 
 	@Override
-	public void applyForces(final PhysShip ship) {}
-
-	@Override
-	public void applyForcesAndLookupPhysShips(final PhysShip ship, final Function1<? super Long, ? extends PhysShip> lookup0) {
-		final Function<Long, PhysShip> lookup = (id) -> lookup0.invoke(id);
+	public void physTick(final @NotNull PhysShip ship, final @NotNull PhysLevel world) {
 		final Iterator<IPhysTickableBlockEntity> iterator = this.physTickers.values().iterator();
 		while (iterator.hasNext()) {
 			final IPhysTickableBlockEntity ticker = iterator.next();
@@ -201,7 +187,7 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 				iterator.remove();
 				continue;
 			}
-			ticker.physicsTick(ship, lookup);
+			ticker.physicsTick(ship, world);
 		}
 	}
 
@@ -359,7 +345,7 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 	}
 
 	public static void preServerTick(final MinecraftServer server) {
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(server);
+		final VsiServerShipWorld world = VSGameUtilsKt.getShipObjectWorld(server);
 		for (final LoadedServerShip ship : world.getLoadedShips()) {
 			final ShipNetworkAttachment attachment = ship.getAttachment(ShipNetworkAttachment.class);
 			if (attachment == null) {
@@ -370,7 +356,7 @@ public final class ShipNetworkAttachment implements ShipForcesInducer {
 	}
 
 	public static void postServerTick(final MinecraftServer server) {
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(server);
+		final VsiServerShipWorld world = VSGameUtilsKt.getShipObjectWorld(server);
 		for (final LoadedServerShip ship : world.getLoadedShips()) {
 			final ShipNetworkAttachment attachment = ship.getAttachment(ShipNetworkAttachment.class);
 			if (attachment == null) {

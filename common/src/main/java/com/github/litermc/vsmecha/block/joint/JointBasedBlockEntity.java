@@ -2,6 +2,7 @@ package com.github.litermc.vsmecha.block.joint;
 
 import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
 import com.github.litermc.vsmecha.util.ShipUtil;
+import com.github.litermc.vtil.util.TaskUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -10,8 +11,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
 import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.core.internal.world.VsiPhysLevel;
 
 public abstract class JointBasedBlockEntity extends EnergyBasedBlockEntity implements IJointBlockEntity {
 	protected JointBasedBlockEntity(final BlockEntityType<? extends JointBasedBlockEntity> type, final BlockPos pos, final BlockState state) {
@@ -27,26 +27,28 @@ public abstract class JointBasedBlockEntity extends EnergyBasedBlockEntity imple
 		return ShipUtil.getServerShip((ServerLevel) (this.getLevel()), attachingBlock);
 	}
 
-	protected abstract int[] getConstraints();
+	protected abstract int[] getJointIds();
 
-	protected abstract void rebuildConstraints();
+	protected abstract void rebuildJoints();
 
-	protected void removeConstriants() {
-		final int[] constraints = this.getConstraints();
-		if (constraints == null) {
-			return;
-		}
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld((ServerLevel) (this.getLevel()));
-		for (final int id : constraints) {
-			world.removeConstraint(id);
-		}
+	protected void removeJoints() {
+		TaskUtil.queuePhysicsTick((ServerLevel) (this.getLevel()), (world) -> {
+			final int[] joints = this.getJointIds();
+			if (joints == null) {
+				return;
+			}
+			final VsiPhysLevel physWorld = (VsiPhysLevel) world;
+			for (final int id : joints) {
+				physWorld.removeJoint(id);
+			}
+		});
 	}
 
 	@Override
 	public void setLevel(final Level level) {
 		super.setLevel(level);
 		if (!level.isClientSide) {
-			this.rebuildConstraints();
+			this.rebuildJoints();
 		}
 	}
 
@@ -54,7 +56,7 @@ public abstract class JointBasedBlockEntity extends EnergyBasedBlockEntity imple
 	public void beforeRemove() {
 		super.beforeRemove();
 		if (!this.getLevel().isClientSide) {
-			this.removeConstriants();
+			this.removeJoints();
 		}
 	}
 }

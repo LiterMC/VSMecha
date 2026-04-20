@@ -14,8 +14,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
-import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 import java.util.HashMap;
@@ -225,7 +224,7 @@ public class IFFBeaconBlockEntity extends EnergyBasedBlockEntity {
 	protected void syncKnownAllies(final LoadedServerShip ship) {
 		final long shipId = ship.getId();
 		final ServerLevel level = (ServerLevel) (this.getLevel());
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
+		final VsiServerShipWorld world = VSGameUtilsKt.getShipObjectWorld(level);
 		for (final long targetShipId : this.knownAllies) {
 			final LoadedServerShip targetShip = world.getLoadedShips().getById(targetShipId);
 			if (targetShip == null) {

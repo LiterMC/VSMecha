@@ -11,7 +11,7 @@ import org.joml.Vector3d;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.PhysShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 public final class ShipUtil {
@@ -29,7 +29,7 @@ public final class ShipUtil {
 	}
 
 	public static ServerShip getServerShip(final ServerLevel level, final BlockPos pos) {
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
+		final VsiServerShipWorld world = VSGameUtilsKt.getShipObjectWorld(level);
 		final ServerShip ship = world.getAllShips().getByChunkPos(
 			SectionPos.blockToSectionCoord(pos.getX()),
 			SectionPos.blockToSectionCoord(pos.getZ()),
@@ -43,7 +43,7 @@ public final class ShipUtil {
 	}
 
 	public static long getShipOrDimId(final ServerLevel level, final BlockPos pos) {
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
+		final VsiServerShipWorld world = VSGameUtilsKt.getShipObjectWorld(level);
 		final ServerShip ship = world.getAllShips().getByChunkPos(
 			SectionPos.blockToSectionCoord(pos.getX()),
 			SectionPos.blockToSectionCoord(pos.getZ()),
@@ -71,6 +71,9 @@ public final class ShipUtil {
 		return baseRot.invert().mul(otherRot);
 	}
 
+	/**
+	 * @return rotation {@code other} relative to {@code ship}
+	 */
 	public static Quaterniond getShipRelativeRotation(final PhysShip ship, final PhysShip other) {
 		final Quaterniond baseRot = ship == null ? new Quaterniond() : new Quaterniond(ship.getTransform().getShipToWorldRotation());
 		final Quaterniondc otherRot = other == null ? ZERO_QUAT : other.getTransform().getShipToWorldRotation();

@@ -1,9 +1,8 @@
 package com.github.litermc.vsmecha.block;
 
 import org.valkyrienskies.core.api.ships.PhysShip;
-
-import java.util.function.Function;
+import org.valkyrienskies.core.api.world.PhysLevel;
 
 public interface IPhysTickableBlockEntity {
-	void physicsTick(PhysShip ship, Function<Long, PhysShip> lookup);
+	void physicsTick(PhysShip ship, PhysLevel world);
 }

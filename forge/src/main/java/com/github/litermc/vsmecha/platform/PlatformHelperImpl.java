@@ -10,7 +10,6 @@ import com.github.litermc.vsmecha.network.MessageType;
 import com.github.litermc.vsmecha.network.NetworkMessage;
 import com.github.litermc.vsmecha.network.client.ClientNetworkContext;
 import com.github.litermc.vsmecha.network.container.ContainerData;
-import com.github.litermc.vsmecha.util.TaskUtil;
 
 import com.google.auto.service.AutoService;
 import com.google.gson.JsonArray;

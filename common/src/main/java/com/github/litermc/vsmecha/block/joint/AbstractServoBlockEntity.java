@@ -5,12 +5,11 @@ import com.github.litermc.vsmecha.block.IPhysTickableBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
 import com.github.litermc.vsmecha.util.ShipUtil;
-
+import com.github.litermc.vtil.util.TaskUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -21,14 +20,15 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.PhysShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.core.apigame.constraints.VSConstraint;
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
+import org.valkyrienskies.core.api.world.PhysLevel;
+import org.valkyrienskies.core.internal.joints.VSJoint;
+import org.valkyrienskies.core.internal.world.VsiPhysLevel;
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 import dan200.computercraft.api.network.wired.WiredNode;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity implements IAttachableBlockEntity, IJointPeripheralBlockEntity, IPhysTickableBlockEntity {
 	private static final int AUTO_ATTACH_CD = 20;
@@ -151,7 +151,6 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 			return false;
 		}
 
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
 		final ServerShip ship = ShipUtil.getServerShip(level, pos);
 		final ServerShip other = ShipUtil.getServerShip(level, otherPos);
 
@@ -169,14 +168,19 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 			.invert()
 			.mul(new Quaterniond(this.headDirOppo.getRotation()));
 
-		final VSConstraint[] constraints = this.rebuildConstraintsFor(selfId, otherId);
-		final int[] constraintIds = new int[constraints.length];
-		for (int i = 0; i < constraints.length; i++) {
-			constraintIds[i] = world.createNewConstraint(constraints[i]);
-		}
-
 		this.servoInfo = new ServoInfo();
-		this.servoInfo.attachConstraints = constraintIds;
+
+		final VSJoint[] joints = this.rebuildJointsFor(selfId, otherId);
+
+		TaskUtil.queuePhysicsTick(level, (physWorld) -> {
+			final VsiPhysLevel phyWorld = (VsiPhysLevel) physWorld;
+			final int[] jointIds = new int[joints.length];
+			for (int i = 0; i < joints.length; i++) {
+				jointIds[i] = phyWorld.addJoint(joints[i]);
+			}
+			this.servoInfo.attachJoints = jointIds;
+			this.servoInfo.initializing = false;
+		});
 		return true;
 	}
 
@@ -206,11 +210,11 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 			return false;
 		}
 		final ServerLevel level = (ServerLevel) (this.getLevel());
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
 
 		this.disconnectHeadNode();
 
-		this.servoInfo.detach(world);
+		final ServoInfo servoInfo = this.servoInfo;
+		TaskUtil.queuePhysicsTick(level, (physWorld) -> servoInfo.detach((VsiPhysLevel) physWorld));
 		this.servoInfo = null;
 		this.headPos = null;
 		this.headDirOppo = null;
@@ -268,12 +272,12 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 	}
 
 	@Override
-	protected int[] getConstraints() {
-		return this.servoInfo == null ? null : this.servoInfo.attachConstraints;
+	protected int[] getJointIds() {
+		return this.servoInfo == null ? null : this.servoInfo.attachJoints;
 	}
 
 	@Override
-	protected void rebuildConstraints() {
+	protected void rebuildJoints() {
 		final BlockPos headPos = this.pendingHeadPos;
 		if (headPos == null) {
 			return;
@@ -283,7 +287,6 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos pos = this.getBlockPos();
 
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
 		final ServerShip ship = ShipUtil.getServerShip(level, pos);
 		final ServerShip other = ShipUtil.getServerShip(level, headPos);
 
@@ -298,25 +301,30 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 			.invert()
 			.mul(new Quaterniond(this.headDirOppo.getRotation()));
 
-		final VSConstraint[] constraints = this.rebuildConstraintsFor(selfId, otherId);
-		final int[] constraintIds = new int[constraints.length];
-		for (int i = 0; i < constraints.length; i++) {
-			constraintIds[i] = world.createNewConstraint(constraints[i]);
-		}
-
 		this.servoInfo = new ServoInfo();
-		this.servoInfo.attachConstraints = constraintIds;
+
+		final VSJoint[] joints = this.rebuildJointsFor(selfId, otherId);
+
+		TaskUtil.queuePhysicsTick(level, (physWorld) -> {
+			final VsiPhysLevel phyWorld = (VsiPhysLevel) physWorld;
+			final int[] jointIds = new int[joints.length];
+			for (int i = 0; i < joints.length; i++) {
+				jointIds[i] = phyWorld.addJoint(joints[i]);
+			}
+			this.servoInfo.attachJoints = jointIds;
+			this.servoInfo.initializing = false;
+		});
 	}
 
-	protected abstract VSConstraint[] rebuildConstraintsFor(long selfId, long otherId);
+	protected abstract VSJoint[] rebuildJointsFor(long selfId, long otherId);
 
 	@Override
-	protected void removeConstriants() {
-		super.removeConstriants();
+	protected void removeJoints() {
+		super.removeJoints();
 		if (this.servoInfo == null) {
 			return;
 		}
-		this.servoInfo.attachConstraints = null;
+		this.servoInfo.attachJoints = null;
 		this.servoInfo = null;
 	}
 
@@ -326,7 +334,7 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos pos = this.getBlockPos();
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
+		final VsiServerShipWorld world = VSGameUtilsKt.getShipObjectWorld(level);
 		if (this.headPos != null) {
 			if (this.servoInfo.detached()) {
 				this.disconnectHeadNode();
@@ -387,14 +395,14 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 	}
 
 	@Override
-	public void physicsTick(final PhysShip ship, final Function<Long, PhysShip> lookup) {
+	public void physicsTick(final PhysShip ship, final PhysLevel physWorld) {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos headPos = this.headPos;
 		if (headPos == null) {
 			return;
 		}
 		final ServerShip otherSShip = VSGameUtilsKt.getShipManagingPos(level, headPos);
-		final PhysShip otherShip = otherSShip == null ? null : lookup.apply(otherSShip.getId());
+		final PhysShip otherShip = otherSShip == null ? null : physWorld.getShipById(otherSShip.getId());
 
 		this.stepServo(ship, otherShip, 1.0 / 60);
 	}
@@ -414,20 +422,23 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 	}
 
 	static final class ServoInfo {
-		int[] attachConstraints;
+		int[] attachJoints = null;
+		boolean initializing = true;
 
 		boolean detached() {
-			return this.attachConstraints == null;
+			return !this.initializing && this.attachJoints == null;
 		}
 
-		void detach(final ServerShipWorldCore world) {
-			if (this.attachConstraints == null) {
+		void detach(final VsiPhysLevel world) {
+			this.initializing = false;
+			int[] attachJoints = this.attachJoints;
+			if (attachJoints == null) {
 				return;
 			}
-			for (final int id : this.attachConstraints) {
-				world.removeConstraint(id);
+			this.attachJoints = null;
+			for (final int id : attachJoints) {
+				world.removeJoint(id);
 			}
-			this.attachConstraints = null;
 		}
 	}
 }

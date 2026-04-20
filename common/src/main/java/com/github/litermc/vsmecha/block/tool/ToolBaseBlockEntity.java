@@ -9,7 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
-import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 // TODO: mixin EntityShipCollisionUtils.adjustEntityMovementForShipCollisions to avoid entity drag on tool block
@@ -28,7 +28,7 @@ public class ToolBaseBlockEntity extends BaseBlockEntity {
 		super.serverTick();
 
 		final BlockPos pos = this.getBlockPos();
-		final ServerShip ship = VSGameUtilsKt.getShipObjectManagingPos((ServerLevel) (this.getLevel()), pos);
+		final LoadedServerShip ship = VSGameUtilsKt.getLoadedShipManagingPos((ServerLevel) (this.getLevel()), pos);
 		if (ship != null) {
 			ToolCollisionAttachment.get(ship).addBlock(pos);
 		}

@@ -4,10 +4,11 @@
 # eclipse
 bin
 *.launch
-.settings
-.metadata
 .classpath
+.factorypath
+.metadata
 .project
+.settings
 
 # idea
 out

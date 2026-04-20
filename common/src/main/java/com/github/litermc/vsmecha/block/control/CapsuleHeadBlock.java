@@ -15,6 +15,7 @@ public class CapsuleHeadBlock extends Block {
 		super(props);
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public InteractionResult use(
 		final BlockState state,

@@ -32,16 +32,14 @@ import org.joml.Matrix4dc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
-import org.joml.primitives.AABBdc;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class IRSensorBlockEntity extends RadarBlockEntity {
 	private static final double ERROR = 0.005;
@@ -91,7 +89,7 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 	@Override
 	protected void finalizeScan(final List<ScanResult> results) {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
+		final VsiServerShipWorld world = VSGameUtilsKt.getShipObjectWorld(level);
 		final BlockPos pos = this.getBlockPos();
 		final ServerShip ship = ShipUtil.getServerShip(level, pos);
 

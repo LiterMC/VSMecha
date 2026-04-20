@@ -1,11 +1,10 @@
 package com.github.litermc.vsmecha.block.joint;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
-import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
-import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.ElectroGraspPeripheral;
 import com.github.litermc.vsmecha.util.BlockSourceClipContext;
 import com.github.litermc.vsmecha.util.ShipUtil;
+import com.github.litermc.vtil.util.TaskUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -15,7 +14,6 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -24,23 +22,26 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
+import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
-import org.valkyrienskies.core.apigame.constraints.VSAttachmentConstraint;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.core.internal.joints.VSDistanceJoint;
+import org.valkyrienskies.core.internal.joints.VSJointMaxForceTorque;
+import org.valkyrienskies.core.internal.joints.VSJointPose;
+import org.valkyrienskies.core.internal.world.VsiPhysLevel;
 
 public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IAttachableBlockEntity {
-	private static final double ATTACH_COMPLIANCE = 0;
-	private static final double ATTACH_MAX_FORCE = Double.POSITIVE_INFINITY;
+	private static final double JOINT_COMPLIANCE = 1e-13;
+	private static final double JOINT_MAX_FORCE = 1e13;
+	private static final VSJointMaxForceTorque JOINT_MAX_FORCE_TORQUE = new VSJointMaxForceTorque((float) JOINT_MAX_FORCE, (float) JOINT_MAX_FORCE);
 	private static final double EXTEND_LOCK_AREA = 20.0 / 16;
 
 	private final Direction direction;
 	private BlockPos attachingBlock = null;
 	private Vector3dc attachingPos = null;
 	private Vector3dc pendingAttachPos = null;
-	private Integer attachConstraintId = null;
+	private volatile Integer attachJointId = null;
 	private boolean redstoneAttach = false;
 
 	public ElectroGraspBlockEntity(final BlockEntityType<? extends ElectroGraspBlockEntity> type, final BlockPos pos, final BlockState state) {
@@ -134,11 +135,13 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 			return false;
 		}
 		final ServerLevel level = (ServerLevel) (this.getLevel());
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
-		if (this.attachConstraintId != null) {
-			world.removeConstraint(this.attachConstraintId);
-			this.attachConstraintId = null;
-		}
+		TaskUtil.queuePhysicsTick(level, (world) -> {
+			final Integer attachJointId = this.attachJointId;
+			if (attachJointId != null) {
+				this.attachJointId = null;
+				((VsiPhysLevel) world).removeJoint(attachJointId);
+			}
+		});
 		this.attachingBlock = null;
 		this.attachingPos = null;
 		this.pendingAttachPos = null;
@@ -199,17 +202,20 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 			return false;
 		}
 
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
-		final VSAttachmentConstraint attachConstraint = new VSAttachmentConstraint(
+		final VSDistanceJoint attachJoint = new VSDistanceJoint(
 			selfId,
+			new VSJointPose(mountPos, new Quaterniond()),
 			targetId,
-			ATTACH_COMPLIANCE,
-			mountPos,
-			from,
-			ATTACH_MAX_FORCE,
-			0
+			new VSJointPose(from, new Quaterniond()),
+			JOINT_MAX_FORCE_TORQUE,
+			JOINT_COMPLIANCE,
+			0f,
+			0.01f,
+			null,
+			null,
+			null
 		);
-		this.attachConstraintId = world.createNewConstraint(attachConstraint);
+		TaskUtil.queuePhysicsTick(level, (world) -> this.attachJointId = ((VsiPhysLevel) world).addJoint(attachJoint));
 		this.attachingBlock = targetPos;
 		this.attachingPos = mountPos;
 		this.pendingAttachPos = null;
@@ -223,12 +229,12 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 	}
 
 	@Override
-	protected int[] getConstraints() {
-		return this.attachConstraintId == null ? null : new int[]{this.attachConstraintId};
+	protected int[] getJointIds() {
+		return this.attachJointId == null ? null : new int[]{this.attachJointId};
 	}
 
 	@Override
-	protected void rebuildConstraints() {
+	protected void rebuildJoints() {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 
 		final Vector3dc pendingAttachPos = this.pendingAttachPos;
@@ -254,17 +260,20 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 		if (target != null) {
 			target.getTransform().getWorldToShip().transformPosition(targetMountPos);
 		}
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
-		final VSAttachmentConstraint attachConstraint = new VSAttachmentConstraint(
+		final VSDistanceJoint attachJoint = new VSDistanceJoint(
 			selfId,
+			new VSJointPose(pendingAttachPos, new Quaterniond()),
 			targetId,
-			ATTACH_COMPLIANCE,
-			pendingAttachPos,
-			targetMountPos,
-			ATTACH_MAX_FORCE,
-			0
+			new VSJointPose(targetMountPos, new Quaterniond()),
+			JOINT_MAX_FORCE_TORQUE,
+			JOINT_COMPLIANCE,
+			0f,
+			0.01f,
+			null,
+			null,
+			null
 		);
-		this.attachConstraintId = world.createNewConstraint(attachConstraint);
+		TaskUtil.queuePhysicsTick(level, (world) -> this.attachJointId = ((VsiPhysLevel) world).addJoint(attachJoint));
 		this.attachingPos = pendingAttachPos;
 	}
 

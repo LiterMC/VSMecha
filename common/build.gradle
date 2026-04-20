@@ -22,12 +22,13 @@ dependencies {
 
 	implementation annotationProcessor("com.google.auto.service:auto-service:1.1.1")
 
-	modApi "org.valkyrienskies:valkyrienskies-120-common:${vs2_version}"
+	modApi("org.valkyrienskies:valkyrienskies-120-common:${vs2_version}") { transitive = false }
 
-	implementation "org.valkyrienskies.core:api:${vs_core_version}"
-	implementation "org.valkyrienskies.core:impl:${vs_core_version}"
-	implementation "org.valkyrienskies.core:internal:${vs_core_version}"
-	implementation "org.valkyrienskies.core:util:${vs_core_version}"
+	compileOnly "org.valkyrienskies.core:api:${vs_core_version}"
+	compileOnly "org.valkyrienskies.core:impl:${vs_core_version}"
+	compileOnly "org.valkyrienskies.core:internal:${vs_core_version}"
+	compileOnly "org.valkyrienskies.core:util:${vs_core_version}"
+	modCompileOnly "com.github.litermc.vtil:vtil-common-${minecraft_version}:${vtil_version}"
 
 	compileOnly "cc.tweaked:cc-tweaked-${minecraft_version}-common:${cct_version}"
 

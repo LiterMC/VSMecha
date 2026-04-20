@@ -5,29 +5,23 @@ import com.github.litermc.vsmecha.platform.PlatformHelper;
 import com.github.litermc.vsmecha.util.DestroyUtil;
 import com.github.litermc.vsmecha.util.IFakePlayer;
 import com.github.litermc.vsmecha.util.PredictUtil;
-
+import com.github.litermc.vtil.api.attachment.IServerTickListener;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.shapes.VoxelShape;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
-import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
-import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ChunkClaim;
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 import java.util.ArrayList;
@@ -46,20 +40,14 @@ import java.util.stream.LongStream;
 	getterVisibility = JsonAutoDetect.Visibility.NONE,
 	setterVisibility = JsonAutoDetect.Visibility.NONE
 )
-public final class ToolCollisionAttachment {
+public final class ToolCollisionAttachment implements IServerTickListener {
 	private static final double COLLISION_DETECT = 4.0 / 16;
 	private final Set<BlockPos> toolBlocks = new HashSet<>();
 
 	public ToolCollisionAttachment() {}
 
-	public static ToolCollisionAttachment get(final ServerShip ship) {
-		final ToolCollisionAttachment attachment = ship.getAttachment(ToolCollisionAttachment.class);
-		if (attachment != null) {
-			return attachment;
-		}
-		final ToolCollisionAttachment newAttachment = new ToolCollisionAttachment();
-		ship.saveAttachment(ToolCollisionAttachment.class, newAttachment);
-		return newAttachment;
+	public static ToolCollisionAttachment get(final LoadedServerShip ship) {
+		return ship.getOrPutAttachment(ToolCollisionAttachment.class, ToolCollisionAttachment::new);
 	}
 
 	@JsonGetter("toolBlocks")
@@ -77,7 +65,8 @@ public final class ToolCollisionAttachment {
 		this.toolBlocks.add(pos);
 	}
 
-	public void tick(final ServerLevel level, final LoadedServerShip ship) {
+	@Override
+	public void onServerTick(final ServerLevel level, final LoadedServerShip ship) {
 		final ChunkClaim claim = ship.getChunkClaim();
 		final Matrix4dc mat = ship.getTransform().getShipToWorld();
 		final Vector3dc scaling = ship.getTransform().getShipToWorldScaling();
@@ -126,20 +115,5 @@ public final class ToolCollisionAttachment {
 		impactedEntities.forEach((entity, data) -> {
 			entity.hurt(player.damageSources().playerAttack(player), (float) (data.velocity * perMass) * data.damageAmplifier * 0.5f);
 		});
-	}
-
-	public static void postLevelTick(final ServerLevel level) {
-		final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(level);
-		final String dimId = VSGameUtilsKt.getDimensionId(level);
-		for (final LoadedServerShip ship : world.getLoadedShips()) {
-			if (!ship.getChunkClaimDimension().equals(dimId)) {
-				continue;
-			}
-			final ToolCollisionAttachment attachment = ship.getAttachment(ToolCollisionAttachment.class);
-			if (attachment == null) {
-				continue;
-			}
-			attachment.tick(level, ship);
-		}
 	}
 }

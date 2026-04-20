@@ -14,8 +14,7 @@ import net.minecraft.server.level.ServerLevel;
 
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.command.ShipArgument;
-import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource;
+import org.valkyrienskies.mod.common.command.arguments.ShipArgument;
 
 import java.util.Set;
 

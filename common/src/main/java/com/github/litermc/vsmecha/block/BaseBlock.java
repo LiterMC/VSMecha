@@ -15,6 +15,7 @@ public abstract class BaseBlock extends Block implements EntityBlock {
 		super(props);
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public void neighborChanged(
 		final BlockState state,
@@ -30,6 +31,7 @@ public abstract class BaseBlock extends Block implements EntityBlock {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public void onRemove(
 		final BlockState state,

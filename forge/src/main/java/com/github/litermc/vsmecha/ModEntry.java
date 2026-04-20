@@ -16,6 +16,7 @@ import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 @Mod(Constants.MOD_ID)
@@ -25,12 +26,17 @@ public class ModEntry {
 		final FMLJavaModLoadingContext context = FMLJavaModLoadingContext.get();
 		final IEventBus modBus = context.getModEventBus();
 
-		VSMechaRegistry.register();
+		VSMechaListeners.onModInit();
 		BlockCapabilityProviders.register();
 
 		context.registerConfig(ModConfig.Type.SERVER, ((ForgeConfigFile)(ConfigSpec.serverSpec)).spec());
+		modBus.addListener(this::onCommonSetup);
 		modBus.addListener(this::onConfigLoad);
 		modBus.addListener(this::onConfigReload);
+	}
+
+	private void onCommonSetup(final FMLCommonSetupEvent event) {
+		event.enqueueWork(VSMechaListeners::onModSetup);
 	}
 
 	@SubscribeEvent

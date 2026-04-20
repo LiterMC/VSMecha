@@ -1,13 +1,12 @@
 package com.github.litermc.vsmecha.block.energy;
 
 import com.github.litermc.vsmecha.attachment.ShipNetworkAttachment;
-import com.github.litermc.vsmecha.block.BaseBlockEntity;
 import com.github.litermc.vsmecha.block.IJointPeripheralBlockEntity;
 import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
 import com.github.litermc.vsmecha.util.ShipUtil;
-import com.github.litermc.vsmecha.util.TaskUtil;
+import com.github.litermc.vtil.util.TaskUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -260,7 +259,10 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 	@Override
 	public void setLevel(final Level level) {
 		super.setLevel(level);
-		if (!(level instanceof final ServerLevel serverLevel) || !CompatMods.COMPUTERCRAFT.isLoaded() || !(this instanceof IJointPeripheralBlockEntity || this.isOnShip())) {
+		if (!(level instanceof final ServerLevel serverLevel)) {
+			return;
+		}
+		if (!CompatMods.COMPUTERCRAFT.isLoaded() || !(this instanceof IJointPeripheralBlockEntity || this.isOnShip())) {
 			return;
 		}
 		final BlockPos pos = this.getBlockPos();
