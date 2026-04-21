@@ -1,7 +1,6 @@
 package com.github.litermc.vsmecha.block.energy;
 
 import com.github.litermc.vsmecha.VSMechaRegistry;
-import com.github.litermc.vsmecha.api.HeatAPI;
 import com.github.litermc.vsmecha.compat.computercraft.ThermalEnergyCorePeripheral;
 import com.github.litermc.vsmecha.platform.PlatformHelper;
 

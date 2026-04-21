@@ -14,9 +14,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public abstract class RadarBlockEntity extends EnergyBasedBlockEntity {
 	private final FrontAndTop orientation;
@@ -108,9 +106,7 @@ public abstract class RadarBlockEntity extends EnergyBasedBlockEntity {
 		}
 	}
 
-	/**
-	 * @return must be an instance of {@link RadarPeripheral} or its subclass
-	 */
+	@Override
 	protected abstract Object createPeripheral();
 
 	@Override

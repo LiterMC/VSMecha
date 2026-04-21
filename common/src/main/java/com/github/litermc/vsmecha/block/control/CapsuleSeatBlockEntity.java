@@ -239,7 +239,7 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 			}
 			return false;
 		}
-		if (!(this.getLevel() instanceof ServerLevel level)) {
+		if (!(this.getLevel() instanceof ServerLevel)) {
 			return true;
 		}
 		final SeatEntity seat = this.getOrCreateSeatEntity();

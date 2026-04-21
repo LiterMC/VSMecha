@@ -234,7 +234,7 @@ public class ElectroGraspBlockEntity extends JointBasedBlockEntity implements IA
 	}
 
 	@Override
-	protected void rebuildJoints() {
+	protected void tryRebuildJoints() {
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 
 		final Vector3dc pendingAttachPos = this.pendingAttachPos;

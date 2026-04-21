@@ -6,10 +6,13 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 import dan200.computercraft.api.peripheral.IPeripheral;
 
+import org.jetbrains.annotations.NotNull;
+
 public abstract class BasePeripheral<T extends BlockEntity & IPeripheralBlockEntity> implements IPeripheral {
+	@NotNull
 	protected final T be;
 
-	protected BasePeripheral(final T be) {
+	protected BasePeripheral(final @NotNull T be) {
 		this.be = be;
 	}
 

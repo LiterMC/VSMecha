@@ -4,13 +4,15 @@ import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
 
 import dan200.computercraft.api.lua.LuaFunction;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Optional;
 import java.util.Set;
 
 public abstract class EnergyBasedPeripheral<T extends EnergyBasedBlockEntity> extends BasePeripheral<T> {
 	private static final Set<String> ADDTIONAL_TYPES = Set.of("energy_storage");
 
-	protected EnergyBasedPeripheral(final T be) {
+	protected EnergyBasedPeripheral(final @NotNull T be) {
 		super(be);
 	}
 

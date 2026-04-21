@@ -2,11 +2,9 @@ package com.github.litermc.vsmecha.shape;
 
 import com.github.litermc.vsmecha.util.MathUtil;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 import org.joml.Vector3d;

@@ -48,10 +48,11 @@ public class ServoHeadPeripheral extends BasePeripheral<AbstractServoHeadBlockEn
 		if (peerPos == null) {
 			return null;
 		}
-		if (!(level.getBlockEntity(peerPos) instanceof IPeripheralBlockEntity be)) {
+		if (!(level.getBlockEntity(peerPos) instanceof IPeripheralBlockEntity peerBe)) {
 			return null;
 		}
-		if (!(be.getShipModemPeripheral() instanceof ShipModemPeripheral modem)) {
+		final ShipModemPeripheral modem = peerBe.getShipPeripheralHolder().getShipModemPeripheral();
+		if (modem == null) {
 			return null;
 		}
 		return modem.getLocalPeripheral().getConnectedName();

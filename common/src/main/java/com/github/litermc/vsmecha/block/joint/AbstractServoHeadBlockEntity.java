@@ -1,13 +1,11 @@
 package com.github.litermc.vsmecha.block.joint;
 
-import com.github.litermc.vsmecha.attachment.ShipNetworkAttachment;
 import com.github.litermc.vsmecha.block.BaseBlockEntity;
 import com.github.litermc.vsmecha.block.IJointPeripheralBlockEntity;
 import com.github.litermc.vsmecha.block.IPhysTickableBlockEntity;
-import com.github.litermc.vsmecha.block.joint.AbstractServoBlockEntity.ServoInfo;
 import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.ServoHeadPeripheral;
-import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
+import com.github.litermc.vsmecha.util.ShipPeripheralHolder;
 import com.github.litermc.vsmecha.util.ShipUtil;
 import com.github.litermc.vtil.util.TaskUtil;
 
@@ -20,22 +18,11 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
-import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.PhysShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.world.PhysLevel;
 import org.valkyrienskies.core.internal.world.VsiPhysLevel;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-
-import dan200.computercraft.api.network.wired.WiredElement;
-import dan200.computercraft.api.network.wired.WiredNode;
-import dan200.computercraft.api.peripheral.IPeripheral;
-import dan200.computercraft.shared.peripheral.modem.wired.WiredModemLocalPeripheral;
-import dan200.computercraft.shared.platform.ComponentAccess;
-import dan200.computercraft.shared.platform.PlatformHelper;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public abstract class AbstractServoHeadBlockEntity extends BaseBlockEntity implements IJointBlockEntity, IJointPeripheralBlockEntity, IPhysTickableBlockEntity {
 	private final Direction direction;
@@ -43,13 +30,7 @@ public abstract class AbstractServoHeadBlockEntity extends BaseBlockEntity imple
 	private volatile AbstractServoBlockEntity sbe = null;
 	AbstractServoBlockEntity.ServoInfo servoInfo = null;
 
-	private Object /*IPeripheral*/ peripheral = null;
-	private CompoundTag modemData = null;
-	private Object /*ShipModemPeripheral*/ modemPeripheral = null;
-	private final Object /*ComponentAccess<WiredElement>*/ cableAccess = CompatMods.COMPUTERCRAFT.isLoaded()
-		? PlatformHelper.get().createWiredElementAccess(this, (side) -> this.queueRefreshCables())
-		: null;
-	private volatile boolean refreshingCables = false;
+	private final ShipPeripheralHolder peripheralHolder = new ShipPeripheralHolder(this, () -> new ServoHeadPeripheral(this));
 
 	public AbstractServoHeadBlockEntity(final BlockEntityType<? extends AbstractServoHeadBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -79,16 +60,8 @@ public abstract class AbstractServoHeadBlockEntity extends BaseBlockEntity imple
 	}
 
 	@Override
-	public final Object getOrCreatePeripheral() {
-		if (this.peripheral == null) {
-			this.peripheral = new ServoHeadPeripheral(this);
-		}
-		return this.peripheral;
-	}
-
-	@Override
-	public final Object getShipModemPeripheral() {
-		return this.modemPeripheral;
+	public final ShipPeripheralHolder getShipPeripheralHolder() {
+		return this.peripheralHolder;
 	}
 
 	@Override
@@ -100,59 +73,34 @@ public abstract class AbstractServoHeadBlockEntity extends BaseBlockEntity imple
 	public void load(final CompoundTag data) {
 		super.load(data);
 		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
-			this.modemData = data.getCompound("ModemData");
+			this.peripheralHolder.load(data);
 		}
 	}
 
 	@Override
 	protected void saveAdditional(final CompoundTag data) {
 		super.saveAdditional(data);
-		if (CompatMods.COMPUTERCRAFT.isLoaded() && this.modemPeripheral instanceof final ShipModemPeripheral modemPeripheral) {
-			final CompoundTag modemData = new CompoundTag();
-			modemPeripheral.getLocalPeripheral().write(modemData, "");
-			data.put("ModemData", modemData);
-		} else if (this.modemData != null) {
-			data.put("ModemData", this.modemData);
+		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
+			this.peripheralHolder.save(data);
 		}
 	}
 
 	@Override
 	public void setLevel(final Level level) {
 		super.setLevel(level);
-		if (!(level instanceof ServerLevel serverLevel) || !CompatMods.COMPUTERCRAFT.isLoaded()) {
+		if (!(level instanceof ServerLevel serverLevel)) {
 			return;
 		}
-		final BlockPos pos = this.getBlockPos();
-		final ShipModemPeripheral modemPeripheral = new ShipModemPeripheral(this);
-		this.modemPeripheral = modemPeripheral;
-		final WiredModemLocalPeripheral localPeripheral = modemPeripheral.getLocalPeripheral();
-		if (this.modemData != null) {
-			localPeripheral.read(this.modemData, "");
-			this.modemData = null;
-		}
-		TaskUtil.queueTickEnd(() -> {
-			localPeripheral.attach(serverLevel, pos.above(), Direction.DOWN);
-			final Map<String, IPeripheral> peripheralMap = new HashMap<>();
-			localPeripheral.extendMap(peripheralMap);
-			modemPeripheral.getElement().getNode().updatePeripherals(peripheralMap);
-		});
-		if (this instanceof IJointPeripheralBlockEntity) {
-			this.queueRefreshCables();
-		}
-		final ServerShip ship = ShipUtil.getServerShip(serverLevel, pos);
-		if (ship instanceof final LoadedServerShip loadedShip) {
-			ShipNetworkAttachment.get(loadedShip).registerPeripheral(this);
+		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
+			this.peripheralHolder.onSetLevel(serverLevel);
 		}
 	}
 
 	@Override
 	public void setRemoved() {
 		super.setRemoved();
-		if (CompatMods.COMPUTERCRAFT.isLoaded() && this.modemPeripheral instanceof ShipModemPeripheral modemPeripheral) {
-			final CompoundTag modemData = new CompoundTag();
-			modemPeripheral.getLocalPeripheral().write(modemData, "");
-			this.modemData = modemData;
-			modemPeripheral.getElement().getNode().remove();
+		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
+			this.peripheralHolder.onRemove();
 		}
 	}
 
@@ -175,7 +123,7 @@ public abstract class AbstractServoHeadBlockEntity extends BaseBlockEntity imple
 			return;
 		}
 		this.sbe = null;
-		final ServoInfo servoInfo = this.servoInfo;
+		final AbstractServoBlockEntity.ServoInfo servoInfo = this.servoInfo;
 		TaskUtil.queuePhysicsTick(level, (world) -> servoInfo.detach((VsiPhysLevel) world));
 		this.servoInfo = null;
 		this.basePos = null;
@@ -196,31 +144,6 @@ public abstract class AbstractServoHeadBlockEntity extends BaseBlockEntity imple
 		if (sbe == null || sbe.isRemoved()) {
 			return;
 		}
-		sbe.stepServo(peerShip == null ? null : world.getShipById(peerShip.getId()), ship, 1.0 / 60);
-	}
-
-	private void queueRefreshCables() {
-		if (this.refreshingCables) {
-			return;
-		}
-		this.refreshingCables = true;
-		TaskUtil.queueTickEnd(this::refreshCables);
-	}
-
-	private void refreshCables() {
-		this.refreshingCables = false;
-		final WiredNode node = ((ShipModemPeripheral) (this.modemPeripheral)).getElement().getNode();
-		final ComponentAccess<WiredElement> cableAccess = (ComponentAccess<WiredElement>) (this.cableAccess);
-		for (final Direction dir : Direction.values()) {
-			final WiredElement element = cableAccess.get(dir);
-			if (element == null) {
-				continue;
-			}
-			if (this.canConnectPeripheralWire(dir)) {
-				node.connectTo(element.getNode());
-			} else {
-				node.disconnectFrom(element.getNode());
-			}
-		}
+		sbe.stepServo(world, peerShip == null ? null : world.getShipById(peerShip.getId()), ship, 1.0 / 60);
 	}
 }

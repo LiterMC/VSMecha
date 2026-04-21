@@ -43,7 +43,7 @@ public abstract class SurfaceBVH extends BVH<SurfaceBVH.SurfaceBound> {
 		return null;
 	}
 
-	public static class SurfaceBound implements Bound {
+	public static class SurfaceBound implements BVH.Bound {
 		public final double x0, y0, x1, y1;
 		public final double z;
 

@@ -1,6 +1,5 @@
 package com.github.litermc.vsmecha.attachment;
 
-import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
 import com.github.litermc.vsmecha.block.IPhysTickableBlockEntity;
 import com.github.litermc.vsmecha.block.energy.IEnergyBlockEntity;
 import com.github.litermc.vsmecha.block.joint.IJointBlockEntity;
@@ -10,6 +9,7 @@ import com.github.litermc.vsmecha.compat.CompatMods;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipGlobalWiredElement;
 import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
 import com.github.litermc.vsmecha.util.LevelUtil;
+import com.github.litermc.vsmecha.util.ShipPeripheralHolder;
 import com.github.litermc.vsmecha.util.ShipUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
@@ -55,7 +55,7 @@ public final class ShipNetworkAttachment implements ShipPhysicsListener {
 	private final Set<BlockPos> joints = new HashSet<>();
 	private final Map<BlockPos, IPhysTickableBlockEntity> physTickers = new ConcurrentHashMap<>();
 	private final Set<BlockPos> iffBeacons = new HashSet<>();
-	private final Map<BlockPos, Object> peripherals = new HashMap<>();
+	private final Map<BlockPos, ShipPeripheralHolder> peripherals = new HashMap<>();
 	private final Map<Object, Set<BlockPos>> ports = new IdentityHashMap<>();
 
 	private boolean ticking = false;
@@ -145,14 +145,10 @@ public final class ShipNetworkAttachment implements ShipPhysicsListener {
 		}
 	}
 
-	public void registerPeripheral(final BlockEntity be) {
-		if (
-			be instanceof final IPeripheralBlockEntity pbe &&
-			pbe.getShipModemPeripheral() instanceof final ShipModemPeripheral modem
-		) {
-			if (this.peripherals.put(be.getBlockPos(), modem) != modem) {
-				((WiredNode) (this.getGlobalNode((ServerLevel) (be.getLevel())))).connectTo(modem.getElement().getNode());
-			}
+	public void registerPeripheral(final ShipPeripheralHolder holder) {
+		final BlockEntity be = holder.getBlockEntity();
+		if (this.peripherals.put(be.getBlockPos(), holder) != holder) {
+			((WiredNode) this.getGlobalNode((ServerLevel) be.getLevel())).connectTo(holder.getShipModemPeripheral().getElement().getNode());
 		}
 	}
 
@@ -170,7 +166,7 @@ public final class ShipNetworkAttachment implements ShipPhysicsListener {
 		if (be instanceof IFFBeaconBlockEntity) {
 			this.iffBeacons.remove(pos);
 		}
-		if (CompatMods.COMPUTERCRAFT.isLoaded() && be instanceof IPeripheralBlockEntity) {
+		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
 			this.peripherals.remove(pos);
 		}
 		if (be instanceof final IPortBlockEntity pbe) {
@@ -280,12 +276,14 @@ public final class ShipNetworkAttachment implements ShipPhysicsListener {
 				}
 			}
 
-			final Iterator<BlockPos> pbeIter = network.peripherals.keySet().iterator();
+			final Iterator<Map.Entry<BlockPos, ShipPeripheralHolder>> pbeIter = network.peripherals.entrySet().iterator();
 			while (pbeIter.hasNext()) {
-				final BlockPos pos = pbeIter.next();
-				if (!(level.getBlockEntity(pos) instanceof IPeripheralBlockEntity)) {
-					final ShipModemPeripheral modem = (ShipModemPeripheral) (network.peripherals.get(pos));
+				final Map.Entry<BlockPos, ShipPeripheralHolder> entry = pbeIter.next();
+				final BlockPos pos = entry.getKey();
+				final ShipPeripheralHolder holder = entry.getValue();
+				if (holder.getBlockEntity() != level.getBlockEntity(pos)) {
 					pbeIter.remove();
+					final ShipModemPeripheral modem = holder.getShipModemPeripheral();
 					modem.getElement().getNode().remove();
 				}
 			}

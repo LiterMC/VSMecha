@@ -44,10 +44,11 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 		if (peerPos == null) {
 			return null;
 		}
-		if (!(level.getBlockEntity(peerPos) instanceof IPeripheralBlockEntity be)) {
+		if (!(level.getBlockEntity(peerPos) instanceof IPeripheralBlockEntity peerBe)) {
 			return null;
 		}
-		if (!(be.getShipModemPeripheral() instanceof ShipModemPeripheral modem)) {
+		final ShipModemPeripheral modem = peerBe.getShipPeripheralHolder().getShipModemPeripheral();
+		if (modem == null) {
 			return null;
 		}
 		return modem.getLocalPeripheral().getConnectedName();
@@ -134,11 +135,6 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 	}
 
 	@LuaFunction
-	public final double getLastTorque() {
-		return this.be.getLastTorque();
-	}
-
-	@LuaFunction
 	public final MethodResult getPosPID() {
 		final PID pid = this.be.getPosPID();
 		return MethodResult.of(pid.getKp(), pid.getKi(), pid.getKd());
@@ -147,17 +143,6 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 	@LuaFunction
 	public final void setPosPID(final double p, final double i, final double d) {
 		this.be.setPosPID(p, i, d);
-	}
-
-	@LuaFunction
-	public final MethodResult getVelPID() {
-		final PID pid = this.be.getVelPID();
-		return MethodResult.of(pid.getKp(), pid.getKi(), pid.getKd());
-	}
-
-	@LuaFunction
-	public final void setVelPID(final double p, final double i, final double d) {
-		this.be.setVelPID(p, i, d);
 	}
 
 	@LuaFunction

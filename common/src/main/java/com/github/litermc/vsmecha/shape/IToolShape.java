@@ -8,7 +8,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
-import org.joml.Vector3d;
 import org.joml.Vector3dc;
 
 public interface IToolShape {

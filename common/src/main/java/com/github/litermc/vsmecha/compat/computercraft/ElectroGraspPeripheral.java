@@ -1,6 +1,5 @@
 package com.github.litermc.vsmecha.compat.computercraft;
 
-import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
 import com.github.litermc.vsmecha.block.joint.ElectroGraspBlockEntity;
 
 import dan200.computercraft.api.lua.LuaFunction;

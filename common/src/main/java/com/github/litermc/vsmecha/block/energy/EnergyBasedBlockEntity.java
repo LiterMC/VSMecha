@@ -1,13 +1,9 @@
 package com.github.litermc.vsmecha.block.energy;
 
-import com.github.litermc.vsmecha.attachment.ShipNetworkAttachment;
-import com.github.litermc.vsmecha.block.IJointPeripheralBlockEntity;
 import com.github.litermc.vsmecha.block.IPeripheralBlockEntity;
 import com.github.litermc.vsmecha.compat.CompatMods;
-import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
-import com.github.litermc.vsmecha.util.ShipUtil;
-import com.github.litermc.vtil.util.TaskUtil;
-
+import com.github.litermc.vsmecha.util.ShipPeripheralHolder;
+import dan200.computercraft.api.peripheral.IPeripheral;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -16,19 +12,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
-import org.valkyrienskies.core.api.ships.LoadedServerShip;
-import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-
-import dan200.computercraft.api.network.wired.WiredElement;
-import dan200.computercraft.api.network.wired.WiredNode;
-import dan200.computercraft.api.peripheral.IPeripheral;
-import dan200.computercraft.shared.peripheral.modem.wired.WiredModemLocalPeripheral;
-import dan200.computercraft.shared.platform.ComponentAccess;
-import dan200.computercraft.shared.platform.PlatformHelper;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity implements IEnergyBlockEntity, IPeripheralBlockEntity {
 	private volatile boolean enabled;
@@ -40,13 +24,7 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 	protected int energyOutputRemaining = 0;
 	protected int energyInputRemaining = 0;
 
-	private Object /*IPeripheral*/ peripheral = null;
-	private CompoundTag modemData = null;
-	public Object /*ShipModemPeripheral*/ modemPeripheral = null;
-	private final Object /*ComponentAccess<WiredElement>*/ cableAccess = CompatMods.COMPUTERCRAFT.isLoaded() && this instanceof IJointPeripheralBlockEntity
-		? PlatformHelper.get().createWiredElementAccess(this, (side) -> this.queueRefreshCables())
-		: null;
-	private volatile boolean refreshingCables = false;
+	private final ShipPeripheralHolder peripheralHolder = new ShipPeripheralHolder(this, () -> (IPeripheral) this.createPeripheral());
 
 	protected EnergyBasedBlockEntity(final BlockEntityType<? extends EnergyBasedBlockEntity> type, final BlockPos pos, final BlockState state) {
 		super(type, pos, state);
@@ -200,20 +178,12 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 	protected abstract Object createPeripheral();
 
 	protected final Object getPeripheral() {
-		return this.peripheral;
+		return this.peripheralHolder.getPeripheral();
 	}
 
 	@Override
-	public final Object getOrCreatePeripheral() {
-		if (this.peripheral == null) {
-			this.peripheral = this.createPeripheral();
-		}
-		return this.peripheral;
-	}
-
-	@Override
-	public final Object getShipModemPeripheral() {
-		return this.modemPeripheral;
+	public final ShipPeripheralHolder getShipPeripheralHolder() {
+		return this.peripheralHolder;
 	}
 
 	@Override
@@ -228,7 +198,7 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		this.energy = data.getInt("Energy");
 		this.empTicks = data.getInt("EMPTicks");
 		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
-			this.modemData = data.getCompound("ModemData");
+			this.peripheralHolder.load(data);
 		}
 	}
 
@@ -239,12 +209,8 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		data.putInt("Priority", this.priority);
 		data.putInt("Energy", this.energy);
 		data.putInt("EMPTicks", this.empTicks);
-		if (CompatMods.COMPUTERCRAFT.isLoaded() && this.modemPeripheral instanceof final ShipModemPeripheral modemPeripheral) {
-			final CompoundTag modemData = new CompoundTag();
-			modemPeripheral.getLocalPeripheral().write(modemData, "");
-			data.put("ModemData", modemData);
-		} else if (this.modemData != null) {
-			data.put("ModemData", this.modemData);
+		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
+			this.peripheralHolder.save(data);
 		}
 	}
 
@@ -262,40 +228,16 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		if (!(level instanceof final ServerLevel serverLevel)) {
 			return;
 		}
-		if (!CompatMods.COMPUTERCRAFT.isLoaded() || !(this instanceof IJointPeripheralBlockEntity || this.isOnShip())) {
-			return;
-		}
-		final BlockPos pos = this.getBlockPos();
-		final ShipModemPeripheral modemPeripheral = new ShipModemPeripheral(this);
-		this.modemPeripheral = modemPeripheral;
-		final WiredModemLocalPeripheral localPeripheral = modemPeripheral.getLocalPeripheral();
-		if (this.modemData != null) {
-			localPeripheral.read(this.modemData, "");
-			this.modemData = null;
-		}
-		TaskUtil.queueTickEnd(() -> {
-			localPeripheral.attach(serverLevel, pos.above(), Direction.DOWN);
-			final Map<String, IPeripheral> peripheralMap = new HashMap<>();
-			localPeripheral.extendMap(peripheralMap);
-			modemPeripheral.getElement().getNode().updatePeripherals(peripheralMap);
-		});
-		if (this instanceof IJointPeripheralBlockEntity) {
-			this.queueRefreshCables();
-		}
-		final ServerShip ship = ShipUtil.getServerShip(serverLevel, pos);
-		if (ship instanceof final LoadedServerShip loadedShip) {
-			ShipNetworkAttachment.get(loadedShip).registerPeripheral(this);
+		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
+			this.peripheralHolder.onSetLevel(serverLevel);
 		}
 	}
 
 	@Override
 	public void setRemoved() {
 		super.setRemoved();
-		if (CompatMods.COMPUTERCRAFT.isLoaded() && this.modemPeripheral instanceof final ShipModemPeripheral modemPeripheral) {
-			final CompoundTag modemData = new CompoundTag();
-			modemPeripheral.getLocalPeripheral().write(modemData, "");
-			this.modemData = modemData;
-			modemPeripheral.getElement().getNode().remove();
+		if (CompatMods.COMPUTERCRAFT.isLoaded()) {
+			this.peripheralHolder.onRemove();
 		}
 	}
 
@@ -305,34 +247,6 @@ public abstract class EnergyBasedBlockEntity extends ThermalBasedBlockEntity imp
 		if (this.empTicks > 0) {
 			this.empTicks--;
 			this.setChanged();
-		}
-	}
-
-	private void queueRefreshCables() {
-		if (this.refreshingCables) {
-			return;
-		}
-		this.refreshingCables = true;
-		TaskUtil.queueTickEnd(this::refreshCables);
-	}
-
-	private void refreshCables() {
-		this.refreshingCables = false;
-		if (!(this instanceof final IJointPeripheralBlockEntity jbe)) {
-			return;
-		}
-		final WiredNode node = ((ShipModemPeripheral) (this.modemPeripheral)).getElement().getNode();
-		final ComponentAccess<WiredElement> cableAccess = (ComponentAccess<WiredElement>) (this.cableAccess);
-		for (final Direction dir : Direction.values()) {
-			final WiredElement element = cableAccess.get(dir);
-			if (element == null) {
-				continue;
-			}
-			if (jbe.canConnectPeripheralWire(dir)) {
-				node.connectTo(element.getNode());
-			} else {
-				node.disconnectFrom(element.getNode());
-			}
 		}
 	}
 }

@@ -1,12 +1,7 @@
 package com.github.litermc.vsmecha.block;
 
-import com.github.litermc.vsmecha.compat.computercraft.network.ShipModemPeripheral;
+import com.github.litermc.vsmecha.util.ShipPeripheralHolder;
 
 public interface IPeripheralBlockEntity {
-	Object getOrCreatePeripheral();
-
-	/**
-	 * @return {@code null} or an instance of {@link ShipModemPeripheral}
-	 */
-	Object getShipModemPeripheral();
+	ShipPeripheralHolder getShipPeripheralHolder();
 }

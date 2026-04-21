@@ -4,7 +4,7 @@ import com.github.litermc.vsmecha.VSMechaRegistry;
 import com.github.litermc.vsmecha.attachment.ShipNetworkAttachment;
 import com.github.litermc.vsmecha.block.energy.EnergyBasedBlockEntity;
 import com.github.litermc.vsmecha.util.ShipUtil;
-
+import dan200.computercraft.api.peripheral.IPeripheral;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;

@@ -15,7 +15,6 @@ import net.minecraft.world.phys.Vec3;
 
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
-import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.Ship;

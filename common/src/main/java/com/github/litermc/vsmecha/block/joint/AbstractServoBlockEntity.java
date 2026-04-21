@@ -17,13 +17,11 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
-import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.PhysShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.world.PhysLevel;
 import org.valkyrienskies.core.internal.joints.VSJoint;
 import org.valkyrienskies.core.internal.world.VsiPhysLevel;
-import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 import dan200.computercraft.api.network.wired.WiredNode;
@@ -42,10 +40,10 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 
 	private volatile boolean autoAttach = true;
 	private volatile boolean working = false;
-	private volatile boolean positionMode = true;
+	private volatile boolean positionMode = false;
 	private volatile int positionLoopScale = 6;
 	private int autoAttachCD = 20;
-	private Object headNode = null;
+	private Object /*WiredNode*/ headNode = null;
 
 	protected final AtomicInteger heatBuilt = new AtomicInteger();
 	private int posPIDCD = 0;
@@ -114,21 +112,17 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final ServerShip selfShip = ShipUtil.getServerShip(level, this.getBlockPos());
 		final ServerShip otherShip = ShipUtil.getServerShip(level, this.headPos);
-		final Direction dir = this.getDirection();
-		final Vector3dc dirVec = new Vector3d(dir.getStepX(), dir.getStepY(), dir.getStepZ());
 		return ShipUtil.getShipRelativeRotation(selfShip, otherShip).mul(this.relOrientation).normalize();
 	}
 
 	protected final Quaterniond readRotationInPhy(final PhysShip selfShip, final PhysShip otherShip) {
-		final Direction dir = this.getDirection();
-		final Vector3dc dirVec = new Vector3d(dir.getStepX(), dir.getStepY(), dir.getStepZ());
 		return ShipUtil.getShipRelativeRotation(selfShip, otherShip).mul(this.relOrientation).normalize();
 	}
 
 	protected void disconnectHeadNode() {
 		if (CompatMods.COMPUTERCRAFT.isLoaded() && this.headNode != null) {
-			final WiredNode selfNode = ((ShipModemPeripheral) (this.getShipModemPeripheral())).getElement().getNode();
-			selfNode.disconnectFrom((WiredNode) (this.headNode));
+			final WiredNode selfNode = this.getShipPeripheralHolder().getShipModemPeripheral().getElement().getNode();
+			selfNode.disconnectFrom((WiredNode) this.headNode);
 			this.headNode = null;
 		}
 	}
@@ -277,7 +271,7 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 	}
 
 	@Override
-	protected void rebuildJoints() {
+	protected void tryRebuildJoints() {
 		final BlockPos headPos = this.pendingHeadPos;
 		if (headPos == null) {
 			return;
@@ -334,7 +328,6 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 
 		final ServerLevel level = (ServerLevel) (this.getLevel());
 		final BlockPos pos = this.getBlockPos();
-		final VsiServerShipWorld world = VSGameUtilsKt.getShipObjectWorld(level);
 		if (this.headPos != null) {
 			if (this.servoInfo.detached()) {
 				this.disconnectHeadNode();
@@ -371,14 +364,16 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 		if (
 			CompatMods.COMPUTERCRAFT.isLoaded() &&
 			this.headNode == null &&
-			level.getBlockEntity(this.headPos) instanceof final ServoHeadBlockEntity head &&
-			this.getShipModemPeripheral() instanceof final ShipModemPeripheral selfModem &&
-			head.getShipModemPeripheral() instanceof final ShipModemPeripheral headModem
+			level.getBlockEntity(this.headPos) instanceof final ServoHeadBlockEntity head
 		) {
-			final WiredNode selfNode = selfModem.getElement().getNode();
-			final WiredNode headNode = headModem.getElement().getNode();
-			selfNode.connectTo(headNode);
-			this.headNode = headNode;
+			final ShipModemPeripheral selfModem = this.getShipPeripheralHolder().getShipModemPeripheral();
+			final ShipModemPeripheral headModem = head.getShipPeripheralHolder().getShipModemPeripheral();
+			if (selfModem != null && headModem != null) {
+				final WiredNode selfNode = selfModem.getElement().getNode();
+				final WiredNode headNode = headModem.getElement().getNode();
+				selfNode.connectTo(headNode);
+				this.headNode = headNode;
+			}
 		}
 
 		boolean canWork = this.isEnabled();
@@ -404,10 +399,10 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 		final ServerShip otherSShip = VSGameUtilsKt.getShipManagingPos(level, headPos);
 		final PhysShip otherShip = otherSShip == null ? null : physWorld.getShipById(otherSShip.getId());
 
-		this.stepServo(ship, otherShip, 1.0 / 60);
+		this.stepServo(physWorld, ship, otherShip, 1.0 / 60);
 	}
 
-	public abstract void stepServo(PhysShip ship, PhysShip otherShip, double dt);
+	public abstract void stepServo(PhysLevel physWorld, PhysShip ship, PhysShip otherShip, double dt);
 
 	protected boolean preTickPositionPID() {
 		if (!this.positionMode) {

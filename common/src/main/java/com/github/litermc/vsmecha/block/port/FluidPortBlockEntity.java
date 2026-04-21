@@ -6,7 +6,6 @@ import com.github.litermc.vsmecha.platform.FluidInterface;
 import com.github.litermc.vsmecha.platform.PlatformHelper;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;

@@ -23,7 +23,7 @@ public final class IPeripheralBlockEntityCapabilityProvider implements ICapabili
 
 	private IPeripheralBlockEntityCapabilityProvider(final BlockEntity be) {
 		this.be = (IPeripheralBlockEntity) (be);
-		this.lazyPeripheral = LazyOptional.of(this.be::getOrCreatePeripheral);
+		this.lazyPeripheral = LazyOptional.of(() -> this.be.getShipPeripheralHolder().getOrCreatePeripheral());
 	}
 
 	@Override
@@ -33,8 +33,11 @@ public final class IPeripheralBlockEntityCapabilityProvider implements ICapabili
 		}
 		if (cap == Capabilities.CAPABILITY_WIRED_ELEMENT) {
 			if (this.be instanceof IJointPeripheralBlockEntity jbe && jbe.canConnectPeripheralWire(side)) {
-				if (!this.lazyWireElement.isPresent() && this.be.getShipModemPeripheral() instanceof ShipModemPeripheral modem) {
-					this.lazyWireElement = LazyOptional.of(modem::getElement);
+				if (!this.lazyWireElement.isPresent()) {
+					final ShipModemPeripheral modem = this.be.getShipPeripheralHolder().getShipModemPeripheral();
+					if (modem != null) {
+						this.lazyWireElement = LazyOptional.of(modem::getElement);
+					}
 				}
 				return this.lazyWireElement.cast();
 			}

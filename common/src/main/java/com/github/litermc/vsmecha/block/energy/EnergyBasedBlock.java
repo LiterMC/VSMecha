@@ -16,6 +16,7 @@ public abstract class EnergyBasedBlock extends ThermalBasedBlock {
 		super(props);
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public InteractionResult use(
 		final BlockState state,

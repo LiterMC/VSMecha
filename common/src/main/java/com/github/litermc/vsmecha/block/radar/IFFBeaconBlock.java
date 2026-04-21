@@ -3,7 +3,6 @@ package com.github.litermc.vsmecha.block.radar;
 import com.github.litermc.vsmecha.block.energy.EnergyBasedBlock;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 

@@ -11,6 +11,7 @@ import org.joml.Vector3d;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.PhysShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -55,7 +56,7 @@ public final class ShipUtil {
 		return world.getDimensionToGroundBodyIdImmutable().get(VSGameUtilsKt.getDimensionId(level));
 	}
 
-	public static long getShipOrDimId(final ServerLevel level, final ServerShip ship) {
+	public static long getShipOrDimId(final ServerLevel level, final Ship ship) {
 		if (ship != null) {
 			return ship.getId();
 		}

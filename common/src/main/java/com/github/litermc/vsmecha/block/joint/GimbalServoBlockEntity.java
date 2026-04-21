@@ -17,6 +17,7 @@ import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.PhysShip;
+import org.valkyrienskies.core.api.world.PhysLevel;
 import org.valkyrienskies.core.internal.joints.VSJoint;
 import org.valkyrienskies.core.internal.joints.VSJointMaxForceTorque;
 import org.valkyrienskies.core.internal.joints.VSJointPose;
@@ -36,8 +37,6 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 
 	private volatile Quaterniondc rotation = ZERO_QUAT;
 	private volatile Quaterniondc targetRotation = ZERO_QUAT;
-	private volatile boolean positionMode = true;
-	private volatile int positionLoopScale = 6;
 	private final Component compPitch = new Component(new AnglePID(3, 0, 4, DEFAULT_PITCH_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
 	private final Component compYaw = new Component(new AnglePID(3, 0, 4, DEFAULT_YAW_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
 	private final Component compRoll = new Component(new AnglePID(3, 0, 4, DEFAULT_ROLL_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
@@ -293,8 +292,8 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 	}
 
 	@Override
-	protected void rebuildJoints() {
-		super.rebuildJoints();
+	protected void tryRebuildJoints() {
+		super.tryRebuildJoints();
 		if (this.isAttached()) {
 			this.rotation = this.readRotation();
 		}
@@ -318,7 +317,7 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 	}
 
 	@Override
-	public void stepServo(final PhysShip ship, final PhysShip otherShip, final double dt) {
+	public void stepServo(final PhysLevel world, final PhysShip ship, final PhysShip otherShip, final double dt) {
 		final Quaterniond currentRotation = this.readRotationInPhy(ship, otherShip);
 		this.rotation = currentRotation;
 		if (!this.isWorking()) {

@@ -5,7 +5,6 @@ import com.github.litermc.vsmecha.block.radar.result.ScanResult;
 import com.github.litermc.vsmecha.compat.computercraft.EnergyBasedPeripheral;
 
 import dan200.computercraft.api.lua.LuaFunction;
-import dan200.computercraft.api.lua.MethodResult;
 import dan200.computercraft.api.peripheral.AttachedComputerSet;
 import dan200.computercraft.api.peripheral.IComputerAccess;
 

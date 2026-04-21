@@ -9,7 +9,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -63,7 +62,7 @@ public class SeatEntity extends Entity {
 
 	@Override
 	public void tick() {
-		if (!(this.level() instanceof ServerLevel serverLevel)) {
+		if (!(this.level() instanceof ServerLevel)) {
 			return;
 		}
 		final CapsuleSeatBlockEntity block = this.getAttachedBlock();
