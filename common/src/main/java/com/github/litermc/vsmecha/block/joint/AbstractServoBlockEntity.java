@@ -364,7 +364,7 @@ public abstract class AbstractServoBlockEntity extends JointBasedBlockEntity imp
 		if (
 			CompatMods.COMPUTERCRAFT.isLoaded() &&
 			this.headNode == null &&
-			level.getBlockEntity(this.headPos) instanceof final ServoHeadBlockEntity head
+			level.getBlockEntity(this.headPos) instanceof final AbstractServoHeadBlockEntity head
 		) {
 			final ShipModemPeripheral selfModem = this.getShipPeripheralHolder().getShipModemPeripheral();
 			final ShipModemPeripheral headModem = head.getShipPeripheralHolder().getShipModemPeripheral();
