@@ -37,9 +37,9 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 
 	private volatile Quaterniondc rotation = ZERO_QUAT;
 	private volatile Quaterniondc targetRotation = ZERO_QUAT;
-	private final Component compX = new Component(new AnglePID(3, 0, 0, DEFAULT_PITCH_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
-	private final Component compY = new Component(new AnglePID(3, 0, 0, DEFAULT_YAW_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
-	private final Component compZ = new Component(new AnglePID(3, 0, 0, DEFAULT_ROLL_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
+	private final Component compX = new Component(new AnglePID(3, 0, 0, DEFAULT_PITCH_SPEED), new OmegaPID(5e4, 2e5, 0, ROTATE_MAX_FORCE));
+	private final Component compY = new Component(new AnglePID(3, 0, 0, DEFAULT_YAW_SPEED), new OmegaPID(5e4, 2e5, 0, ROTATE_MAX_FORCE));
+	private final Component compZ = new Component(new AnglePID(3, 0, 0, DEFAULT_ROLL_SPEED), new OmegaPID(5e4, 2e5, 0, ROTATE_MAX_FORCE));
 
 	private Quaterniondc lastRotation = ZERO_QUAT;
 	private volatile Vector3dc lastOmega = ZERO_VEC3;
