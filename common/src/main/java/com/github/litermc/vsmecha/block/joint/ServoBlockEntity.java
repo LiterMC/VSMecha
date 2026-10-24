@@ -38,11 +38,13 @@ public class ServoBlockEntity extends AbstractServoBlockEntity {
 	private volatile double angle = 0;
 	private volatile double targetAngle = 0;
 	private volatile double targetVelocity = 0;
-	private volatile AnglePID posPID = new AnglePID(3, 0, 4, 15 * Math.PI / 180);
+	private volatile double posPIDLastAngle = 0;
+	private volatile AnglePID posPID = new AnglePID(5, 0, 0, Math.toRadians(15));
 	private volatile double feedForwardForce = 0;
 
 	private boolean wasWorking = false;
 	private double lastAngle = 0;
+	private double lastVelocity = 0;
 	private double lastTargetVelocity = 0;
 
 	public ServoBlockEntity(final BlockEntityType<? extends ServoBlockEntity> type, final BlockPos pos, final BlockState state) {
@@ -82,6 +84,10 @@ public class ServoBlockEntity extends AbstractServoBlockEntity {
 		this.setChanged();
 	}
 
+	public double getLastVelocity() {
+		return this.lastVelocity;
+	}
+
 	/**
 	 * @return max rotation speed in rad/s
 	 */
@@ -90,7 +96,7 @@ public class ServoBlockEntity extends AbstractServoBlockEntity {
 	}
 
 	public void setMaxRotationSpeed(double speed) {
-		speed = Math.max(Math.abs(speed), 6 * 360 / 180 * Math.PI);
+		speed = Math.min(Math.abs(speed), Math.toRadians(6 * 360));
 		if (this.posPID.getMaxOutput() == speed) {
 			return;
 		}
@@ -249,13 +255,17 @@ public class ServoBlockEntity extends AbstractServoBlockEntity {
 		final Matrix4d transform = ship == null ? new Matrix4d() : new Matrix4d(ship.getTransform().getShipToWorld());
 		final Direction dir = this.getDirection();
 		final Vector3dc axis = transform.transformDirection(new Vector3d(dir.getStepX(), dir.getStepY(), dir.getStepZ()));
+		this.lastVelocity = MathUtil.normalizeAngle(currentAngle - this.lastAngle) / dt;
 		this.lastAngle = currentAngle;
 
 		final double fff = this.feedForwardForce;
 
 		double targetVelocity = this.targetVelocity;
 		if (shouldRunPos) {
-			targetVelocity = this.posPID.update(currentAngle, this.getTargetAngle(), dt * positionLoopScale);
+			final double error = MathUtil.normalizeAngle(this.getTargetAngle() - currentAngle);
+			final double vel = MathUtil.normalizeAngle(currentAngle - this.posPIDLastAngle) / (dt * positionLoopScale);
+			this.posPIDLastAngle = currentAngle;
+			targetVelocity = this.posPID.update(error, vel, dt * positionLoopScale);
 			this.targetVelocity = targetVelocity;
 		}
 		if (this.lastTargetVelocity != targetVelocity) {
@@ -266,7 +276,7 @@ public class ServoBlockEntity extends AbstractServoBlockEntity {
 			this.updateJoints(physWorld, this.createRevoluteJoint(selfId, otherId, targetVelocity));
 		}
 
-		double force = 0; // this.velPID.update(currentVelocity, targetVelocity, dt);
+		double force = 0; // this.velPID.update(this.lastVelocity, targetVelocity, dt);
 		force = Math.min(Math.max(force + fff, -ROTATE_MAX_FORCE), ROTATE_MAX_FORCE);
 
 		// TODO: make vs phys engine export drive force

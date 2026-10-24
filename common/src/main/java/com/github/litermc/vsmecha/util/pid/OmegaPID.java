@@ -18,14 +18,14 @@ public final class OmegaPID extends PID {
 	}
 
 	public double update(final double currentVelocity, final double targetVelocity, final double dt) {
-		final double error = targetVelocity - currentVelocity;
+		final double error = currentVelocity - targetVelocity;
 		final double integral = Math.min(Math.max(this.integral + error * dt, -this.intLimit), this.intLimit);
-		double output = this.kp * error + this.ki * integral - this.kd * (currentVelocity - this.lastVel) / dt;
+		double output = this.kp * error + this.ki * integral - this.kd * (this.lastVel - currentVelocity) / dt;
 		this.lastVel = currentVelocity;
 		if (Math.abs(output) > this.maxOutput) {
 			final double sig = Math.signum(output);
 			output = sig * this.maxOutput;
-			if (sig == Math.signum(this.integral - integral)) {
+			if (sig != Math.signum(error)) {
 				this.integral = integral;
 			}
 		} else {

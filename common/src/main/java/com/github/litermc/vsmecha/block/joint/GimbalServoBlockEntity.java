@@ -31,15 +31,15 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 	private static final double ROTATE_MAX_FORCE = 1e13;
 	private static final VSJointMaxForceTorque JOINT_MAX_FORCE_TORQUE = new VSJointMaxForceTorque((float) JOINT_MAX_FORCE, (float) JOINT_MAX_FORCE);
 
-	private static final double DEFAULT_PITCH_SPEED = 15 * Math.PI / 180;
-	private static final double DEFAULT_YAW_SPEED = 15 * Math.PI / 180;
-	private static final double DEFAULT_ROLL_SPEED = 15 * Math.PI / 180;
+	private static final double DEFAULT_PITCH_SPEED = Math.toRadians(15);
+	private static final double DEFAULT_YAW_SPEED = Math.toRadians(15);
+	private static final double DEFAULT_ROLL_SPEED = Math.toRadians(15);
 
 	private volatile Quaterniondc rotation = ZERO_QUAT;
 	private volatile Quaterniondc targetRotation = ZERO_QUAT;
-	private final Component compPitch = new Component(new AnglePID(3, 0, 4, DEFAULT_PITCH_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
-	private final Component compYaw = new Component(new AnglePID(3, 0, 4, DEFAULT_YAW_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
-	private final Component compRoll = new Component(new AnglePID(3, 0, 4, DEFAULT_ROLL_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
+	private final Component compX = new Component(new AnglePID(3, 0, 0, DEFAULT_PITCH_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
+	private final Component compY = new Component(new AnglePID(3, 0, 0, DEFAULT_YAW_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
+	private final Component compZ = new Component(new AnglePID(3, 0, 0, DEFAULT_ROLL_SPEED), new OmegaPID(3e5, 1e2, 0, ROTATE_MAX_FORCE));
 
 	private Quaterniondc lastRotation = ZERO_QUAT;
 	private volatile Vector3dc lastOmega = ZERO_VEC3;
@@ -67,14 +67,14 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 	}
 
 	public double getPitchTargetVelocity() {
-		return this.compPitch.targetVelocity;
+		return this.compX.targetVelocity;
 	}
 
 	public void setPitchTargetVelocity(final double velocity) {
-		if (this.compPitch.targetVelocity == velocity) {
+		if (this.compX.targetVelocity == velocity) {
 			return;
 		}
-		this.compPitch.targetVelocity = velocity;
+		this.compX.targetVelocity = velocity;
 		this.setChanged();
 	}
 
@@ -82,53 +82,53 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 	 * @return max rotation speed in rad/s for pitch
 	 */
 	public double getPitchMaxRotationSpeed() {
-		return this.compPitch.anglePID.getMaxOutput();
+		return this.compX.anglePID.getMaxOutput();
 	}
 
 	public void setPitchMaxRotationSpeed(double speed) {
-		speed = Math.max(Math.abs(speed), 6 * 360 / 180 * Math.PI);
-		if (this.compPitch.anglePID.getMaxOutput() == speed) {
+		speed = Math.min(Math.abs(speed), Math.toRadians(6 * 360));
+		if (this.compX.anglePID.getMaxOutput() == speed) {
 			return;
 		}
-		this.compPitch.anglePID.setMaxOutput(speed);
+		this.compX.anglePID.setMaxOutput(speed);
 		this.setChanged();
 	}
 
 	public PID getPitchPosPID() {
-		return this.compPitch.anglePID;
+		return this.compX.anglePID;
 	}
 
 	public void setPitchPosPID(final double p, final double i, final double d) {
-		this.compPitch.anglePID = this.compPitch.anglePID.recreate(p, i, d);
+		this.compX.anglePID = this.compX.anglePID.recreate(p, i, d);
 		this.setChanged();
 	}
 
 	public PID getPitchVelPID() {
-		return this.compPitch.omegaPID;
+		return this.compX.omegaPID;
 	}
 
 	public void setPitchVelPID(final double p, final double i, final double d) {
-		this.compPitch.omegaPID = this.compPitch.omegaPID.recreate(p, i, d);
+		this.compX.omegaPID = this.compX.omegaPID.recreate(p, i, d);
 		this.setChanged();
 	}
 
 	public double getPitchFeedForwardForce() {
-		return this.compPitch.feedForwardForce;
+		return this.compX.feedForwardForce;
 	}
 
 	public void setPitchFeedForwardForce(final double feedForwardForce) {
-		this.compPitch.feedForwardForce = feedForwardForce;
+		this.compX.feedForwardForce = feedForwardForce;
 	}
 
 	public double getYawTargetVelocity() {
-		return this.compYaw.targetVelocity;
+		return this.compY.targetVelocity;
 	}
 
 	public void setYawTargetVelocity(final double velocity) {
-		if (this.compYaw.targetVelocity == velocity) {
+		if (this.compY.targetVelocity == velocity) {
 			return;
 		}
-		this.compYaw.targetVelocity = velocity;
+		this.compY.targetVelocity = velocity;
 		this.setChanged();
 	}
 
@@ -136,53 +136,53 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 	 * @return max rotation speed in rad/s for yaw
 	 */
 	public double getYawMaxRotationSpeed() {
-		return this.compYaw.anglePID.getMaxOutput();
+		return this.compY.anglePID.getMaxOutput();
 	}
 
 	public void setYawMaxRotationSpeed(double speed) {
-		speed = Math.max(Math.abs(speed), 6 * 360 / 180 * Math.PI);
-		if (this.compYaw.anglePID.getMaxOutput() == speed) {
+		speed = Math.min(Math.abs(speed), Math.toRadians(6 * 360));
+		if (this.compY.anglePID.getMaxOutput() == speed) {
 			return;
 		}
-		this.compYaw.anglePID.setMaxOutput(speed);
+		this.compY.anglePID.setMaxOutput(speed);
 		this.setChanged();
 	}
 
 	public PID getYawPosPID() {
-		return this.compYaw.anglePID;
+		return this.compY.anglePID;
 	}
 
 	public void setYawPosPID(final double p, final double i, final double d) {
-		this.compYaw.anglePID = this.compYaw.anglePID.recreate(p, i, d);
+		this.compY.anglePID = this.compY.anglePID.recreate(p, i, d);
 		this.setChanged();
 	}
 
 	public PID getYawVelPID() {
-		return this.compYaw.omegaPID;
+		return this.compY.omegaPID;
 	}
 
 	public void setYawVelPID(final double p, final double i, final double d) {
-		this.compYaw.omegaPID = this.compYaw.omegaPID.recreate(p, i, d);
+		this.compY.omegaPID = this.compY.omegaPID.recreate(p, i, d);
 		this.setChanged();
 	}
 
 	public double getYawFeedForwardForce() {
-		return this.compYaw.feedForwardForce;
+		return this.compY.feedForwardForce;
 	}
 
 	public void setYawFeedForwardForce(final double feedForwardForce) {
-		this.compYaw.feedForwardForce = feedForwardForce;
+		this.compY.feedForwardForce = feedForwardForce;
 	}
 
 	public double getRollTargetVelocity() {
-		return this.compRoll.targetVelocity;
+		return this.compZ.targetVelocity;
 	}
 
 	public void setRollTargetVelocity(final double velocity) {
-		if (this.compRoll.targetVelocity == velocity) {
+		if (this.compZ.targetVelocity == velocity) {
 			return;
 		}
-		this.compRoll.targetVelocity = velocity;
+		this.compZ.targetVelocity = velocity;
 		this.setChanged();
 	}
 
@@ -190,42 +190,42 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 	 * @return max rotation speed in rad/s for roll
 	 */
 	public double getRollMaxRotationSpeed() {
-		return this.compRoll.anglePID.getMaxOutput();
+		return this.compZ.anglePID.getMaxOutput();
 	}
 
 	public void setRollMaxRotationSpeed(double speed) {
-		speed = Math.max(Math.abs(speed), 6 * 360 / 180 * Math.PI);
-		if (this.compRoll.anglePID.getMaxOutput() == speed) {
+		speed = Math.min(Math.abs(speed), Math.toRadians(6 * 360));
+		if (this.compZ.anglePID.getMaxOutput() == speed) {
 			return;
 		}
-		this.compRoll.anglePID.setMaxOutput(speed);
+		this.compZ.anglePID.setMaxOutput(speed);
 		this.setChanged();
 	}
 
 	public PID getRollPosPID() {
-		return this.compRoll.anglePID;
+		return this.compZ.anglePID;
 	}
 
 	public void setRollPosPID(final double p, final double i, final double d) {
-		this.compRoll.anglePID = this.compRoll.anglePID.recreate(p, i, d);
+		this.compZ.anglePID = this.compZ.anglePID.recreate(p, i, d);
 		this.setChanged();
 	}
 
 	public PID getRollVelPID() {
-		return this.compRoll.omegaPID;
+		return this.compZ.omegaPID;
 	}
 
 	public void setRollVelPID(final double p, final double i, final double d) {
-		this.compRoll.omegaPID = this.compRoll.omegaPID.recreate(p, i, d);
+		this.compZ.omegaPID = this.compZ.omegaPID.recreate(p, i, d);
 		this.setChanged();
 	}
 
 	public double getRollFeedForwardForce() {
-		return this.compRoll.feedForwardForce;
+		return this.compZ.feedForwardForce;
 	}
 
 	public void setRollFeedForwardForce(final double feedForwardForce) {
-		this.compRoll.feedForwardForce = feedForwardForce;
+		this.compZ.feedForwardForce = feedForwardForce;
 	}
 
 	public Vector3dc getLastOmega() {
@@ -243,7 +243,7 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 
 	@Override
 	public int getEnergyConsumption() {
-		return 2500;
+		return 0;//2500;
 	}
 
 	@Override
@@ -259,17 +259,17 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 	@Override
 	public void load(final CompoundTag data) {
 		super.load(data);
-		this.compPitch.fromTag(data.getCompound("CompPitch"));
-		this.compYaw.fromTag(data.getCompound("CompYaw"));
-		this.compRoll.fromTag(data.getCompound("CompRoll"));
+		this.compX.fromTag(data.getCompound("CompX"));
+		this.compY.fromTag(data.getCompound("CompY"));
+		this.compZ.fromTag(data.getCompound("CompZ"));
 	}
 
 	@Override
 	protected void saveAdditional(final CompoundTag data) {
 		super.saveAdditional(data);
-		data.put("CompPitch", this.compPitch.asTag());
-		data.put("CompYaw", this.compYaw.asTag());
-		data.put("CompRoll", this.compRoll.asTag());
+		data.put("CompX", this.compX.asTag());
+		data.put("CompY", this.compY.asTag());
+		data.put("CompZ", this.compZ.asTag());
 	}
 
 	@Override
@@ -333,9 +333,9 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 		final Vector3d error = getQuaternionError(currentRotation, this.targetRotation);
 
 		Vector3dc torque = new Vector3d(
-			this.compPitch.step(error.x, omega.x, positionLoopScale, shouldRunPos, dt),
-			this.compYaw.step(error.y, omega.y, positionLoopScale, shouldRunPos, dt),
-			this.compRoll.step(error.z, omega.z, positionLoopScale, shouldRunPos, dt)
+			this.compX.step(error.x, omega.x, positionLoopScale, shouldRunPos, dt),
+			this.compY.step(error.y, omega.y, positionLoopScale, shouldRunPos, dt),
+			this.compZ.step(error.z, omega.z, positionLoopScale, shouldRunPos, dt)
 		);
 		this.lastTorque = torque;
 		this.heatBuilt.addAndGet((int) ((torque.x() + torque.y() + torque.z()) / ROTATE_MAX_FORCE * 200));
@@ -354,10 +354,11 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 		if (error.w < 0.0) {
 			error.mul(-1);
 		}
-		final double angle = 2 * Math.acos(Math.min(error.w, 1));
-		final double f = Math.sqrt(Math.max(0, 1 - error.w * error.w));
+		error.normalize();
+		final double angle = 2 * Math.acos(error.w);
+		final double f = Math.sqrt(1 - error.w * error.w);
 		if (f < 1e-6) {
-			return new Vector3d();
+			return new Vector3d(error.x, error.y, error.z).mul(2);
 		}
 		return new Vector3d(error.x, error.y, error.z).mul(angle / f);
 	}
@@ -374,15 +375,15 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 		}
 
 		private double step(
-			final double error, 
-			final double velocity, 
-			final int positionLoopScale, 
-			final boolean runPositionLoop, 
+			final double error,
+			final double velocity,
+			final int positionLoopScale,
+			final boolean runPositionLoop,
 			final double dt
 		) {
 			double targetVelocity = this.targetVelocity;
 			if (runPositionLoop) {
-				targetVelocity = this.anglePID.update(error, velocity, dt * positionLoopScale);
+				targetVelocity = this.anglePID.update(-error, velocity, dt * positionLoopScale);
 				this.targetVelocity = targetVelocity;
 			}
 			final double force = this.omegaPID.update(velocity, targetVelocity, dt);

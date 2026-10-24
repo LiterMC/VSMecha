@@ -1,0 +1,24 @@
+{
+	"variants": {
+		"facing=north": {
+			"model": "vsmecha:block/capsult_seat",
+			"x": 0,
+			"y": 0 
+		},
+		"facing=south": {
+			"model": "vsmecha:block/capsult_seat",
+			"x": 0,
+			"y": 180
+		},
+		"facing=west": {
+			"model": "vsmecha:block/capsult_seat",
+			"x": 0,
+			"y": 270
+		},
+		"facing=east": {
+			"model": "vsmecha:block/capsult_seat",
+			"x": 0,
+			"y": 90
+		}
+	}
+}

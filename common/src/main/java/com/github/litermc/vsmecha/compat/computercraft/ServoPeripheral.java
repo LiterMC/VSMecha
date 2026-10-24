@@ -125,6 +125,11 @@ public class ServoPeripheral extends EnergyBasedPeripheral<ServoBlockEntity> {
 	}
 
 	@LuaFunction
+	public final double getLastVelocity() {
+		return this.be.getLastVelocity();
+	}
+
+	@LuaFunction
 	public final double getMaxRotationSpeed() {
 		return this.be.getMaxRotationSpeed();
 	}

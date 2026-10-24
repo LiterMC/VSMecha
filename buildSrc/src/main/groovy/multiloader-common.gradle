@@ -138,17 +138,6 @@ repositories {
 	exclusiveContent {
 		forRepository {
 			maven {
-				name = 'Reach Entity Attributes'
-				url = 'https://maven.jamieswhiteshirt.com/libs-release'
-			}
-		}
-		filter {
-			includeGroup('com.jamieswhiteshirt')
-		}
-	}
-	exclusiveContent {
-		forRepository {
-			maven {
 				name = 'Modrinth'
 				url = 'https://api.modrinth.com/maven'
 			}

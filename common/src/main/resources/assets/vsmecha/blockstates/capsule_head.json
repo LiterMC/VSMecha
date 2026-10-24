@@ -1,0 +1,9 @@
+{
+	"variants": {
+		"": {
+			"model": "minecraft:block/glass_block",
+			"x": 0,
+			"y": 0 
+		}
+	}
+}

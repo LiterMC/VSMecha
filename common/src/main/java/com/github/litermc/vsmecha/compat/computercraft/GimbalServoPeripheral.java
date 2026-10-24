@@ -134,7 +134,7 @@ public class GimbalServoPeripheral extends EnergyBasedPeripheral<GimbalServoBloc
 			z = getFiniteDouble(quat, "z");
 			w = getFiniteDouble(quat, "w");
 		}
-		this.be.setTargetRotation(new Quaterniond(x, y, z, w));
+		this.be.setTargetRotation(new Quaterniond(x, y, z, w).normalize());
 	}
 
 	@LuaFunction
