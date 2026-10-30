@@ -243,7 +243,7 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 
 	@Override
 	public int getEnergyConsumption() {
-		return 0;//2500;
+		return 2500;
 	}
 
 	@Override
@@ -338,7 +338,7 @@ public class GimbalServoBlockEntity extends AbstractServoBlockEntity {
 			this.compZ.step(error.z, omega.z, positionLoopScale, shouldRunPos, dt)
 		);
 		this.lastTorque = torque;
-		this.heatBuilt.addAndGet((int) ((torque.x() + torque.y() + torque.z()) / ROTATE_MAX_FORCE * 200));
+		this.heatBuilt.addAndGet((int) (torque.length() / ROTATE_MAX_FORCE * 200));
 
 		if (otherShip != null) {
 			torque = otherShip.getTransform().getShipToWorld().transformDirection(torque, new Vector3d());

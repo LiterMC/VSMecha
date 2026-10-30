@@ -6,7 +6,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -47,6 +50,26 @@ public class GimbalServoHeadBlock extends BaseBlock {
 		final Direction dir = ctx.getClickedFace();
 		return this.defaultBlockState()
 			.setValue(BlockStateProperties.FACING, dir);
+	}
+
+	@Override
+	public boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
+		return canSupportCenter(level, pos, state.getValue(BlockStateProperties.FACING));
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public BlockState updateShape(
+		BlockState state,
+		Direction direction,
+		BlockState neighborState,
+		LevelAccessor level,
+		BlockPos pos,
+		BlockPos neighborPos
+	) {
+		return this.canSurvive(state, level, pos)
+			? super.updateShape(state, direction, neighborState, level, pos, neighborPos)
+			: Blocks.AIR.defaultBlockState();
 	}
 
 	@Override

@@ -26,6 +26,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
@@ -260,41 +261,12 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 		if (!(this.getLevel() instanceof ServerLevel level)) {
 			return;
 		}
-		final Entity seatEntity = this.getSeatEntity();
 		this.seatUUID = null;
-		this.setChanged();
+		this.killRider();
+		final Entity seatEntity = this.getSeatEntity();
 		if (seatEntity != null) {
 			seatEntity.discard();
-			return;
 		}
-		if (this.playerUUID == null || level.getEntity(this.playerUUID) != null) {
-			return;
-		}
-		final MinecraftServer server = level.getServer();
-
-		final GameProfile profile = server.getProfileCache().get(this.playerUUID).orElse(null);
-		this.playerUUID = null;
-		if (profile == null) {
-			return;
-		}
-		final PlayerList playerList = server.getPlayerList();
-		final ServerPlayer player = playerList.getPlayerForLogin(profile);
-		final CompoundTag playerData = playerList.load(player);
-		if (player.isSpectator() || player.isCreative()) {
-			return;
-		}
-		player.setServerLevel(level);
-		player.loadGameTypes(playerData);
-		new ServerGamePacketListenerImpl(server, new Connection(PacketFlow.CLIENTBOUND), player) {
-			@Override
-			public void send(final Packet<?> packet) {}
-		};
-
-		final Entity killer = null; // TODO
-		player.setHealth(0);
-		player.die(player.damageSources().explosion(killer, killer));
-		player.unRide();
-		((PlayerListAccessor)(playerList)).vsm$save(player);
 	}
 
 	protected void tickLifeSupport() {
@@ -323,6 +295,50 @@ public class CapsuleSeatBlockEntity extends EnergyBasedBlockEntity {
 			if (entity instanceof Player player) {
 				player.getFoodData().eat(20, 20);
 			}
+		}
+	}
+
+	protected void killRider() {
+		if (this.playerUUID == null) {
+			return;
+		}
+
+		final ServerLevel level = (ServerLevel) this.getLevel();
+		final MinecraftServer server = level.getServer();
+		final PlayerList playerList = server.getPlayerList();
+
+		final ServerPlayer activePlayer = playerList.getPlayer(this.playerUUID);
+		final ServerPlayer rider;
+		if (activePlayer != null) {
+			rider = activePlayer;
+		} else {
+			final GameProfile profile = Optional.ofNullable(server.getProfileCache())
+				.flatMap((cache) -> cache.get(this.playerUUID))
+				.orElseGet(() -> new GameProfile(this.playerUUID, "[vsmecha:CapsuleSeat]"));
+			this.playerUUID = null;
+			if (profile == null) {
+				return;
+			}
+			final ServerPlayer player = playerList.getPlayerForLogin(profile);
+			final CompoundTag playerData = playerList.load(player);
+			if (player.isSpectator() || player.isCreative()) {
+				return;
+			}
+			player.setServerLevel(level);
+			player.loadGameTypes(playerData);
+			new ServerGamePacketListenerImpl(server, new Connection(PacketFlow.CLIENTBOUND), player) {
+				@Override
+				public void send(final Packet<?> packet) {}
+			};
+			rider = player;
+		}
+
+		final Entity killer = null; // TODO
+		rider.setHealth(0);
+		rider.die(rider.damageSources().explosion(killer, killer));
+		rider.unRide();
+		if (activePlayer == null) {
+			((PlayerListAccessor)(playerList)).vsm$save(rider);
 		}
 	}
 }

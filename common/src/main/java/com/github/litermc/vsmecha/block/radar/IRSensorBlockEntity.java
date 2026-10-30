@@ -57,7 +57,7 @@ public class IRSensorBlockEntity extends RadarBlockEntity {
 
 	@Override
 	public int getMaxScanRadius() {
-		return 16 * 16;
+		return 16 * 8;
 	}
 
 	public int getOptimalScanRadius(final double size) {
